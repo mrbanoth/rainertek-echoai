@@ -10,536 +10,447 @@ import {
   Play,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
-  ShieldAlert,
-  Sliders,
-  BookOpen,
-  Volume2,
-  PhoneCall,
-  Check,
+  UploadCloud,
+  FileText,
+  FileCode,
+  File,
+  Search,
+  Trash2,
+  Edit3,
   X,
-  ChevronDown,
-  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { AIAgentConfig, PromptVersion } from '@/types';
+import { AIAgentConfig, KnowledgeDoc } from '@/types';
 
-export default function AgentsAndPromptEditorPage() {
+export default function AgentsAndKnowledgePage() {
   const {
     agents,
-    projects,
-    selectedProject,
     updateAgent,
     createAgent,
-    restorePromptVersion,
-    userRole,
+    documents,
+    addDocument,
+    updateDocument,
+    deleteDocument,
   } = useApp();
 
-  // Active agent selected for editing
-  const filteredAgents = agents.filter(
-    (a) => selectedProject === 'ALL' || a.projectId === selectedProject
+  const [topTab, setTopTab] = useState<'agents' | 'knowledge'>('agents');
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(agents[0]?.id || 'agent-hrms-concierge');
+  const [activeSubTab, setActiveSubTab] = useState<'basic' | 'prompt' | 'knowledge' | 'tools'>('prompt');
+
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId) || agents[0];
+
+  const [systemPromptText, setSystemPromptText] = useState(
+    `You are RainerTek HR Assistant, an AI voice agent.\nYour role is to help employees with HR related queries such as leave balance, holiday list, policies, onboarding, etc.\n\nGuidelines:\n- Be polite, professional and concise.\n- Use company knowledge base and HRMS API for real-time data.\n- If you are not sure, say you cannot verify and suggest contacting HR.\n- Do not share sensitive information without proper verification.`
   );
-  const [activeAgentId, setActiveAgentId] = useState<string>(
-    filteredAgents[0]?.id || agents[0]?.id || ''
-  );
 
-  const selectedAgent = agents.find((a) => a.id === activeAgentId) || agents[0];
-
-  // Prompt Form Editable State
-  const [formData, setFormData] = useState({
-    identity: selectedAgent?.systemPrompt?.identity || '',
-    role: selectedAgent?.systemPrompt?.role || '',
-    scope: selectedAgent?.systemPrompt?.scope || '',
-    tone: selectedAgent?.systemPrompt?.tone || '',
-    instructions: selectedAgent?.systemPrompt?.instructions || '',
-    restrictions: selectedAgent?.systemPrompt?.restrictions || '',
-    escalation: selectedAgent?.systemPrompt?.escalation || '',
-    greeting: selectedAgent?.greeting || '',
-    fallbackResponse: selectedAgent?.fallbackResponse || '',
-    voiceModel: selectedAgent?.voiceModel || 'Sarvam Bulbul Core (en-IN)',
-  });
-
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
-  const [activeTab, setActiveTab] = useState<'prompt' | 'versions' | 'playground' | 'settings'>('prompt');
-
-  // Playground conversation simulator state
+  const [hasSaved, setHasSaved] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [testQuery, setTestQuery] = useState('');
-  const [testResponses, setTestResponses] = useState<
-    Array<{ q: string; a: string; citedDoc?: string; fallback?: boolean }>
-  >([]);
+  const [testReply, setTestReply] = useState<string | null>(null);
 
-  // When active agent changes, reset form
-  const handleSelectAgent = (agent: AIAgentConfig) => {
-    if (hasUnsavedChanges) {
-      if (!confirm('You have unsaved prompt changes. Discard and switch agent?')) return;
-    }
-    setActiveAgentId(agent.id);
-    setFormData({
-      identity: agent.systemPrompt.identity,
-      role: agent.systemPrompt.role,
-      scope: agent.systemPrompt.scope,
-      tone: agent.systemPrompt.tone,
-      instructions: agent.systemPrompt.instructions,
-      restrictions: agent.systemPrompt.restrictions,
-      escalation: agent.systemPrompt.escalation,
-      greeting: agent.greeting,
-      fallbackResponse: agent.fallbackResponse,
-      voiceModel: agent.voiceModel,
-    });
-    setHasUnsavedChanges(false);
-  };
-
-  const handleFieldChange = (field: string, val: string) => {
-    setFormData((prev) => ({ ...prev, [field]: val }));
-    setHasUnsavedChanges(true);
-  };
-
-  const handleSavePrompt = () => {
-    if (userRole === 'Read-only viewer') {
-      alert('Action Restricted: Read-only viewers cannot modify agent configurations.');
-      return;
-    }
-
-    const newVersion: PromptVersion = {
-      version: `v1.${(selectedAgent.promptVersions.length + 1).toString()}`,
-      savedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      savedBy: 'admin@rainertek.com',
-      notes: 'Prompt revisions updated via Enterprise Prompt Editor',
-      systemPrompt: {
-        identity: formData.identity,
-        role: formData.role,
-        scope: formData.scope,
-        tone: formData.tone,
-        instructions: formData.instructions,
-        restrictions: formData.restrictions,
-        escalation: formData.escalation,
-      },
-    };
-
+  const handleSave = () => {
     updateAgent(selectedAgent.id, {
-      greeting: formData.greeting,
-      fallbackResponse: formData.fallbackResponse,
-      voiceModel: formData.voiceModel,
-      systemPrompt: newVersion.systemPrompt,
-      promptVersions: [newVersion, ...selectedAgent.promptVersions],
-      updatedAt: new Date().toISOString().slice(0, 10),
+      systemPrompt: {
+        ...selectedAgent.systemPrompt,
+        instructions: systemPromptText,
+      },
     });
-
-    setHasUnsavedChanges(false);
-    setSaveSuccessNotice(true);
-    setTimeout(() => setSaveSuccessNotice(false), 3000);
+    setHasSaved(true);
+    setTimeout(() => setHasSaved(false), 2500);
   };
 
-  const handleRestore = (v: PromptVersion) => {
-    if (confirm(`Restore prompt to version ${v.version}? Current unsaved edits will be replaced.`)) {
-      restorePromptVersion(selectedAgent.id, v);
-      setFormData({
-        identity: v.systemPrompt.identity,
-        role: v.systemPrompt.role,
-        scope: v.systemPrompt.scope,
-        tone: v.systemPrompt.tone,
-        instructions: v.systemPrompt.instructions,
-        restrictions: v.systemPrompt.restrictions,
-        escalation: v.systemPrompt.escalation,
-        greeting: selectedAgent.greeting,
-        fallbackResponse: selectedAgent.fallbackResponse,
-        voiceModel: selectedAgent.voiceModel,
-      });
-      setHasUnsavedChanges(false);
-    }
-  };
-
-  const handleTestSubmit = (e: React.FormEvent) => {
+  const handleTestAgent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!testQuery.trim()) return;
 
-    const lower = testQuery.toLowerCase();
-    let reply = '';
-    let cited = undefined;
-    let isFallback = false;
-
-    if (lower.includes('pto') || lower.includes('leave') || lower.includes('vacation')) {
-      reply = 'According to RainerTek HR Employee Handbook Sec 4.2, employees accrue 1.75 days per month (21 days annual cap). Verified via HRMS policy.';
-      cited = 'RainerTek Employee Handbook 2026.pdf (p.14)';
-    } else if (lower.includes('deviation') || lower.includes('cleanroom') || lower.includes('capa')) {
-      reply = 'Per SOP-QMS-402 Rev 4, cleanroom HEPA deviations exceeding 0.5 microns require immediate batch quarantine within 2 hours.';
-      cited = 'SOP-QMS-402 Cleanroom Deviations.pdf (Sec 3.1)';
-    } else if (lower.includes('specimen') || lower.includes('freezer') || lower.includes('assay')) {
-      reply = 'LIMS Chain of Custody Spec-08 stipulates -80°C cryogenic storage verification before thaw protocol initiation.';
-      cited = 'LIMS-SPEC-08 Specimen Cryogenic SOP.docx';
+    if (testQuery.toLowerCase().includes('leave') || testQuery.toLowerCase().includes('pto')) {
+      setTestReply('Per RainerTek HR Policy, you have 12 casual leaves and 8 sick leaves remaining for this calendar year.');
     } else {
-      reply = formData.fallbackResponse || 'I cannot verify this request against approved RainerTek knowledge documents. Let me transfer you to an authorized supervisor.';
-      isFallback = true;
+      setTestReply(`EchoAI response for "${testQuery}": Information verified against RainerTek company knowledge base.`);
     }
-
-    setTestResponses((prev) => [
-      ...prev,
-      { q: testQuery, a: reply, citedDoc: cited, fallback: isFallback },
-    ]);
-    setTestQuery('');
   };
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-[#111A2E] border border-slate-800">
+      {/* Top Header Matching Mockup 4 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-              <Bot size={18} className="text-indigo-400" />
-              AI Agents & Prompt Engineering
-            </h2>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 font-bold">
-              MULTI-PROJECT ISOLATION
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Manage system instructions, voice synthesis parameters, escalation rules, and prompt version control.
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Agents & Knowledge</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage AI agents and their knowledge sources
           </p>
         </div>
 
-        {/* Unsaved changes pill & Actions */}
-        <div className="flex items-center gap-3">
-          {hasUnsavedChanges && (
-            <span className="text-[11px] font-medium text-amber-400 bg-amber-950/60 border border-amber-500/40 px-2.5 py-1 rounded-md flex items-center gap-1.5 animate-pulse">
-              <AlertTriangle size={12} /> Unsaved Changes
-            </span>
-          )}
-          {saveSuccessNotice && (
-            <span className="text-[11px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-              <CheckCircle2 size={12} /> Prompt Published!
-            </span>
-          )}
-          <button
-            onClick={handleSavePrompt}
-            disabled={!hasUnsavedChanges || userRole === 'Read-only viewer'}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs disabled:opacity-40 transition-colors"
-          >
-            <Save size={14} />
-            Publish Version
-          </button>
-        </div>
+        <button
+          onClick={() => alert('New AI Agent creation dialog.')}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all cursor-pointer"
+        >
+          <Plus size={15} />
+          <span>Create Agent</span>
+        </button>
       </div>
 
-      {/* Main Layout: Agent Directory (Left 4 cols) & Editor Canvas (Right 8 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Agent Cards List */}
-        <div className="lg:col-span-4 space-y-3">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-300 px-1">
-            <span>Configured Agents ({filteredAgents.length})</span>
-            <span className="text-[10px] font-mono text-indigo-400">
-              Project: {selectedProject}
-            </span>
+      {/* Main Tabs: Agents / Knowledge Base */}
+      <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-100 max-w-xs text-xs font-bold text-center">
+        <button
+          onClick={() => setTopTab('agents')}
+          className={`flex-1 py-2 rounded-lg transition-colors ${
+            topTab === 'agents'
+              ? 'bg-white text-blue-600 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Agents
+        </button>
+        <button
+          onClick={() => setTopTab('knowledge')}
+          className={`flex-1 py-2 rounded-lg transition-colors ${
+            topTab === 'knowledge'
+              ? 'bg-white text-blue-600 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Knowledge Base
+        </button>
+      </div>
+
+      {/* VIEW 1: AGENTS TAB (Matching Mockup 4) */}
+      {topTab === 'agents' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column (4.5 cols): Agents Directory List */}
+          <div className="lg:col-span-5 p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Configured Agents
+            </h3>
+
+            <div className="space-y-2.5">
+              {/* HR Assistant */}
+              <div
+                onClick={() => setSelectedAgentId('agent-hrms-concierge')}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  selectedAgentId === 'agent-hrms-concierge'
+                    ? 'border-blue-500 bg-blue-50/50 shadow-xs ring-1 ring-blue-500/30'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                      HR
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-900 text-sm block">HR Assistant</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">HRMS</span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold">
+                    ● Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Employee support and HR queries
+                </p>
+              </div>
+
+              {/* QA Bot */}
+              <div
+                onClick={() => setSelectedAgentId('agent-qms-auditor')}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  selectedAgentId === 'agent-qms-auditor'
+                    ? 'border-blue-500 bg-blue-50/50 shadow-xs ring-1 ring-blue-500/30'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                      QA
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-900 text-sm block">QA Bot</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">QMS</span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold">
+                    ● Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Quality and compliance support
+                </p>
+              </div>
+
+              {/* LIMS Support */}
+              <div
+                onClick={() => setSelectedAgentId('agent-lims-lab')}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  selectedAgentId === 'agent-lims-lab'
+                    ? 'border-blue-500 bg-blue-50/50 shadow-xs ring-1 ring-blue-500/30'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center font-bold text-xs">
+                      LM
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-900 text-sm block">LIMS Support</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">LIMS</span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold">
+                    ● Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Lab and sample related queries
+                </p>
+              </div>
+
+              {/* IT Helpdesk */}
+              <div
+                onClick={() => setSelectedAgentId('agent-it-helpdesk')}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  selectedAgentId === 'agent-it-helpdesk'
+                    ? 'border-blue-500 bg-blue-50/50 shadow-xs ring-1 ring-blue-500/30'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
+                      IT
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-900 text-sm block">IT Helpdesk</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Internal</span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold">
+                    ● Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  IT support and system access
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2.5">
-            {filteredAgents.map((agent) => {
-              const isSelected = agent.id === selectedAgent?.id;
-              return (
-                <div
-                  key={agent.id}
-                  onClick={() => handleSelectAgent(agent)}
-                  className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-[#141E36] border-indigo-500 shadow-md ring-1 ring-indigo-500/50'
-                      : 'bg-[#111A2E] border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="font-bold text-white text-sm">{agent.name}</span>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-indigo-300">
-                      {agent.projectId}
+          {/* Right Column (7.5 cols): Selected Agent Detail & Prompt Editor */}
+          <div className="lg:col-span-7 p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-5">
+            {/* Top Detail Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm border border-slate-100">
+                  <img
+                    src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80"
+                    alt="Agent avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900">{selectedAgent.name}</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold">
+                      ● Active
                     </span>
                   </div>
-
-                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
-                    {agent.description}
-                  </p>
-
-                  <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-400">
-                    <span>Voice: {agent.voiceModel.split(' ')[1]}</span>
-                    <span>Calls: {agent.totalCalls}</span>
-                    <span className="text-emerald-400 font-semibold">{agent.successRate}% Res.</span>
-                  </div>
+                  <span className="text-xs text-slate-400 font-mono">ID: {selectedAgent.id}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
 
-        {/* Right Column: Prompt Editor, Version History, Playground */}
-        <div className="lg:col-span-8 flex flex-col space-y-4">
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-medium w-fit">
-            <button
-              onClick={() => setActiveTab('prompt')}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                activeTab === 'prompt' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              System Prompt Architecture
-            </button>
-            <button
-              onClick={() => setActiveTab('versions')}
-              className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
-                activeTab === 'versions' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <History size={13} />
-              Version History ({selectedAgent?.promptVersions?.length || 0})
-            </button>
-            <button
-              onClick={() => setActiveTab('playground')}
-              className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
-                activeTab === 'playground' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Play size={13} />
-              Assistant Playground
-            </button>
-          </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsTestModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                >
+                  <Play size={12} />
+                  <span>Test Agent</span>
+                </button>
+                <button
+                  onClick={() => alert('Agent parameters configuration modal.')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
 
-          {/* TAB 1: System Prompt Editor Canvas */}
-          {activeTab === 'prompt' && (
-            <div className="p-5 rounded-xl bg-[#111A2E] border border-slate-800 space-y-4 text-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div>
-                  <h3 className="font-bold text-white text-sm">
-                    Structured Prompt Architecture — {selectedAgent?.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Isolated scope guidelines. Never overrides backend authorization.
-                  </p>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/40 font-semibold">
-                  Active: {selectedAgent?.promptVersions[0]?.version || 'v1.0'}
+            {/* Subtabs Matching Mockup 4: Basic Info / Prompt & Instructions / Knowledge Sources / Tools & APIs */}
+            <div className="flex items-center gap-1 border-b border-slate-100 text-xs font-bold">
+              <button
+                onClick={() => setActiveSubTab('basic')}
+                className={`px-3 py-2 border-b-2 transition-colors ${
+                  activeSubTab === 'basic'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Basic Info
+              </button>
+              <button
+                onClick={() => setActiveSubTab('prompt')}
+                className={`px-3 py-2 border-b-2 transition-colors ${
+                  activeSubTab === 'prompt'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Prompt & Instructions
+              </button>
+              <button
+                onClick={() => setActiveSubTab('knowledge')}
+                className={`px-3 py-2 border-b-2 transition-colors ${
+                  activeSubTab === 'knowledge'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Knowledge Sources
+              </button>
+              <button
+                onClick={() => setActiveSubTab('tools')}
+                className={`px-3 py-2 border-b-2 transition-colors ${
+                  activeSubTab === 'tools'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Tools & APIs
+              </button>
+            </div>
+
+            {/* Prompt Editor Form Matching Mockup 4 */}
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-700">
+                System Prompt
+              </label>
+
+              <textarea
+                rows={9}
+                value={systemPromptText}
+                onChange={(e) => setSystemPromptText(e.target.value)}
+                className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-slate-400 font-mono">
+                  {systemPromptText.length}/1000 characters
                 </span>
-              </div>
 
-              {/* Identity & Scope */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Agent Identity</label>
-                  <input
-                    type="text"
-                    value={formData.identity}
-                    onChange={(e) => handleFieldChange('identity', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Tone & Speaking Style</label>
-                  <input
-                    type="text"
-                    value={formData.tone}
-                    onChange={(e) => handleFieldChange('tone', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Role & Permitted Scope */}
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Permitted Knowledge Scope</label>
-                <input
-                  type="text"
-                  value={formData.scope}
-                  onChange={(e) => handleFieldChange('scope', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              {/* Core Instructions */}
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Operating Instructions</label>
-                <textarea
-                  rows={3}
-                  value={formData.instructions}
-                  onChange={(e) => handleFieldChange('instructions', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono text-[11px]"
-                />
-              </div>
-
-              {/* Restrictions & Escalation Criteria */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-rose-300 font-semibold mb-1 flex items-center gap-1">
-                    <ShieldAlert size={12} /> Strict Restrictions
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.restrictions}
-                    onChange={(e) => handleFieldChange('restrictions', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-rose-500/40 text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-500 font-mono text-[11px]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-amber-300 font-semibold mb-1 flex items-center gap-1">
-                    <AlertTriangle size={12} /> Escalation & Handoff Trigger
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.escalation}
-                    onChange={(e) => handleFieldChange('escalation', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-amber-500/40 text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono text-[11px]"
-                  />
-                </div>
-              </div>
-
-              {/* Greeting & Fallback Response */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Initial Inbound Greeting</label>
-                  <textarea
-                    rows={2}
-                    value={formData.greeting}
-                    onChange={(e) => handleFieldChange('greeting', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Fallback (Unverified Query)</label>
-                  <textarea
-                    rows={2}
-                    value={formData.fallbackResponse}
-                    onChange={(e) => handleFieldChange('fallbackResponse', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
-                  />
+                <div className="flex items-center gap-2">
+                  {hasSaved && (
+                    <span className="text-emerald-600 font-bold text-xs flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Saved!
+                    </span>
+                  )}
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* TAB 2: Version History & Rollback */}
-          {activeTab === 'versions' && (
-            <div className="p-5 rounded-xl bg-[#111A2E] border border-slate-800 space-y-4 text-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div>
-                  <h3 className="font-bold text-white text-sm">Prompt Version History</h3>
-                  <p className="text-[11px] text-slate-400">
-                    Review diffs, audit authors, and restore previous published instructions.
-                  </p>
-                </div>
-              </div>
+      {/* VIEW 2: KNOWLEDGE BASE TAB */}
+      {topTab === 'knowledge' && (
+        <div className="space-y-6">
+          {/* Drag & Drop Upload Zone */}
+          <div className="p-8 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100/60 transition-colors text-center flex flex-col items-center justify-center cursor-pointer">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
+              <UploadCloud size={24} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">
+              Drag and drop policy documents and manuals here
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Supports PDF, Markdown (.md), and TXT files up to 25MB for AI grounding.
+            </p>
+          </div>
 
-              <div className="space-y-3">
-                {selectedAgent?.promptVersions?.map((v, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3"
-                  >
+          {/* Documents Table */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-slate-900">Indexed Knowledge Documents</h3>
+            <div className="space-y-2">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText size={18} className="text-blue-600" />
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-indigo-400">{v.version}</span>
-                        {idx === 0 && (
-                          <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                            PUBLISHED CURRENT
-                          </span>
-                        )}
-                        <span className="text-[11px] text-slate-400">• {v.savedAt}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 mt-1">{v.notes}</p>
-                      <span className="text-[10px] text-slate-500 font-mono mt-0.5 block">
-                        Committed by: {v.savedBy}
+                      <span className="font-bold text-slate-900 block">{doc.title}</span>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        {doc.fileName} • {doc.chunkCount} chunks
                       </span>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleRestore(v)}
-                        disabled={idx === 0 || userRole === 'Read-only viewer'}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold disabled:opacity-40 transition-colors"
-                      >
-                        <RotateCcw size={12} />
-                        Restore This Version
-                      </button>
-                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: Grounded Assistant Playground */}
-          {activeTab === 'playground' && (
-            <div className="p-5 rounded-xl bg-[#111A2E] border border-slate-800 space-y-4 text-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div>
-                  <h3 className="font-bold text-white text-sm">
-                    Grounded Conversation Playground — {selectedAgent?.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Test response generation, knowledge retrieval citations, and fallback safety guards.
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold">
+                      ● Indexed
+                    </span>
+                    <button
+                      onClick={() => deleteDocument(doc.id)}
+                      className="text-slate-400 hover:text-red-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Chat Simulation Turns */}
-              <div className="space-y-3 min-h-[220px] max-h-72 overflow-y-auto pr-1">
-                {testResponses.length === 0 ? (
-                  <div className="p-6 text-center text-slate-500 flex flex-col items-center justify-center">
-                    <Sparkles size={24} className="text-slate-600 mb-2" />
-                    <p className="font-semibold text-slate-400">Playground Ready</p>
-                    <p className="text-[11px] mt-0.5">
-                      Type test questions like: "What is my PTO balance policy?" or "Cleanroom HEPA deviation threshold"
-                    </p>
-                  </div>
-                ) : (
-                  testResponses.map((item, idx) => (
-                    <div key={idx} className="space-y-1.5">
-                      <div className="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-indigo-100 mr-8">
-                        <span className="text-[10px] font-mono text-indigo-300 font-bold block mb-0.5">
-                          OPERATOR TEST QUERY
-                        </span>
-                        {item.q}
-                      </div>
-                      <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 ml-8 space-y-1">
-                        <div className="flex items-center justify-between text-[10px] font-mono">
-                          <span className="font-bold text-emerald-400">ECHOAI AGENT RESPONSE</span>
-                          {item.fallback && (
-                            <span className="text-amber-400 font-semibold bg-amber-950 px-1.5 py-0.2 rounded border border-amber-500/40">
-                              FALLBACK TRIGGERED
-                            </span>
-                          )}
-                        </div>
-                        <p>{item.a}</p>
-                        {item.citedDoc && (
-                          <div className="pt-1.5 border-t border-slate-800/80 text-[10px] text-cyan-400 flex items-center gap-1 font-mono">
-                            <BookOpen size={11} />
-                            Source: {item.citedDoc}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Query Input Form */}
-              <form onSubmit={handleTestSubmit} className="flex gap-2 pt-2 border-t border-slate-800">
-                <input
-                  type="text"
-                  placeholder="Enter a test prompt to verify knowledge citation..."
-                  value={testQuery}
-                  onChange={(e) => setTestQuery(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                <button
-                  type="submit"
-                  disabled={!testQuery.trim()}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
-                >
-                  Send Query
-                </button>
-              </form>
+              ))}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Test Agent Modal */}
+      {isTestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-4 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Play size={14} className="text-blue-600" />
+                Test Prompt: {selectedAgent.name}
+              </h3>
+              <button onClick={() => setIsTestModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleTestAgent} className="space-y-3">
+              <input
+                type="text"
+                placeholder="Ask e.g. What is my leave balance?"
+                value={testQuery}
+                onChange={(e) => setTestQuery(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+              <button
+                type="submit"
+                className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs"
+              >
+                Simulate Agent Response
+              </button>
+            </form>
+
+            {testReply && (
+              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-100 text-slate-800 text-xs">
+                <span className="font-bold text-blue-700 block mb-1">AI Response:</span>
+                {testReply}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

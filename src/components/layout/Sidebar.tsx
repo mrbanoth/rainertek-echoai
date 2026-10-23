@@ -1,47 +1,64 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   LayoutDashboard,
   Radio,
   Bot,
-  BookOpen,
   PhoneCall,
-  Megaphone,
-  BarChart3,
-  Network,
-  Users,
-  ShieldCheck,
   Settings,
   ChevronLeft,
   ChevronRight,
-  PhoneIncoming,
+  LogOut,
   Building2,
-  CheckCircle2,
+  Wallet,
+  Sparkles,
+  Shield,
+  User,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { EchoLogo } from './EchoLogo';
 import { cn } from '@/lib/utils';
 
-export const NAVIGATION_ITEMS = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard, badge: null },
-  { href: '/live', label: 'Live Voice', icon: Radio, badge: 'Live 3D' },
-  { href: '/agents', label: 'AI Agents', icon: Bot, badge: null },
-  { href: '/knowledge', label: 'Knowledge Base', icon: BookOpen, badge: null },
-  { href: '/calls', label: 'Call History', icon: PhoneCall, badge: null },
-  { href: '/inbound', label: 'Inbound Routing', icon: PhoneIncoming, badge: null },
-  { href: '/campaigns', label: 'Outbound Campaigns', icon: Megaphone, badge: null },
-  { href: '/analytics', label: 'Analytics & Usage', icon: BarChart3, badge: null },
-  { href: '/integrations', label: 'Integrations', icon: Network, badge: null },
-  { href: '/team', label: 'Team & Permissions', icon: Users, badge: null },
-  { href: '/audit', label: 'Audit Logs', icon: ShieldCheck, badge: null },
-  { href: '/settings', label: 'General Settings', icon: Settings, badge: null },
+export const SIX_CORE_NAV_ITEMS = [
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    badge: null,
+  },
+  {
+    href: '/voice',
+    label: 'Voice Workspace',
+    icon: Radio,
+    badge: '3D AI',
+  },
+  {
+    href: '/agents',
+    label: 'Agents & Knowledge',
+    icon: Bot,
+    badge: null,
+  },
+  {
+    href: '/calls',
+    label: 'Call History',
+    icon: PhoneCall,
+    badge: null,
+  },
+  {
+    href: '/settings',
+    label: 'Team & Settings',
+    icon: Settings,
+    badge: null,
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     sidebarCollapsed,
     toggleSidebar,
@@ -49,152 +66,259 @@ export function Sidebar() {
     setSelectedProject,
     projects,
     liveCallState,
+    userRole,
   } = useApp();
+
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      router.push('/login');
+    }
+  };
 
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-slate-800 bg-[#0B1120] text-slate-200 transition-all duration-200 ease-in-out z-30 select-none min-h-screen',
-        sidebarCollapsed ? 'w-20' : 'w-64'
+        'relative flex flex-col border-r border-slate-200/90 bg-white text-slate-700 transition-all duration-300 ease-in-out z-30 select-none min-h-screen shadow-xs',
+        sidebarCollapsed ? 'w-[76px]' : 'w-64'
       )}
     >
-      {/* Brand Header */}
-      <div className="flex h-16 items-center px-4 border-b border-slate-800/80 justify-between bg-[#080D1A]">
-        <Link href="/" className="flex items-center gap-3 overflow-hidden group">
-          <div className="relative flex-shrink-0 w-9 h-9 rounded-lg bg-slate-900 border border-slate-700/60 p-1 flex items-center justify-center shadow-xs">
-            <Image
-              src="/logo.png"
-              alt="RainerTek EchoAI Logo"
-              width={32}
-              height={32}
-              className="w-full h-full object-contain"
-              priority
-            />
-          </div>
-          {!sidebarCollapsed && (
-            <div className="flex flex-col truncate">
-              <span className="text-sm font-semibold tracking-tight text-white flex items-center gap-1.5">
-                RainerTek
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
-                  EchoAI
-                </span>
-              </span>
-              <span className="text-[11px] text-slate-400 font-medium truncate">
-                Internal Voice Platform
-              </span>
-            </div>
+      {/* Top Header / Squircle Logo Area (Matching Screenshot) */}
+      <div className="flex h-20 items-center px-3.5 justify-between border-b border-slate-100">
+        <Link
+          href="/dashboard"
+          className={cn(
+            'flex items-center gap-3 overflow-hidden group',
+            sidebarCollapsed ? 'mx-auto' : ''
           )}
-        </Link>
-        <button
-          onClick={toggleSidebar}
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          title="RainerTek EchoAI"
         >
-          {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
+          {/* Custom Squircle Geometric Logo */}
+          <EchoLogo size={42} showText={!sidebarCollapsed} />
+        </Link>
+
+        {!sidebarCollapsed && (
+          <button
+            onClick={toggleSidebar}
+            aria-label="Collapse sidebar"
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Project Selector (Section 4 & 5 Isolation) */}
+      {/* Expand Button When Collapsed (Subtle pill toggle) */}
+      {sidebarCollapsed && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={toggleSidebar}
+            aria-label="Expand sidebar"
+            className="w-6 h-6 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-400 hover:text-blue-600 flex items-center justify-center transition-colors"
+            title="Expand Navigation"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
+
+      {/* Department Scope Switcher (Expanded only) */}
       {!sidebarCollapsed && (
-        <div className="px-3 pt-3 pb-2 border-b border-slate-800/60">
+        <div className="px-3.5 pt-3 pb-2 border-b border-slate-100">
           <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1 px-1">
             <span className="flex items-center gap-1">
               <Building2 size={12} className="text-slate-400" />
-              Project Scope
+              Department Scope
             </span>
-            <span className="text-[10px] text-indigo-400 font-mono">Isolated</span>
+            <span className="text-[10px] text-blue-600 font-semibold font-mono">Isolated</span>
           </div>
           <select
             value={selectedProject}
-            aria-label="Filter active workspace by project scope"
+            aria-label="Filter active workspace by department"
             onChange={(e) => setSelectedProject(e.target.value)}
-            className="w-full text-xs font-semibold bg-slate-900/90 border border-slate-700 text-slate-200 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all cursor-pointer"
           >
-            <option value="ALL">All Projects (Global View)</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
+            <option value="ALL">All Departments (Global)</option>
+            <option value="HRMS">HR (Human Resources)</option>
+            <option value="QMS">QA / QMS (Quality & GxP)</option>
+            <option value="LIMS">LIMS (Laboratory Science)</option>
+            <option value="IT">IT & Infrastructure</option>
+            <option value="DEV">Engineering / Dev Team</option>
           </select>
         </div>
       )}
 
-      {/* Navigation Sections */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1 text-xs">
-        {NAVIGATION_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          const isLiveActive = item.href === '/live' && liveCallState.status === 'connected';
+      {/* Navigation Items (Squircle Shape Matching Screenshot) */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+        {SIX_CORE_NAV_ITEMS.map((item) => {
+          const isActive =
+            pathname === item.href ||
+            (item.href === '/voice' && pathname === '/live') ||
+            (item.href === '/dashboard' && pathname === '/');
 
+          const Icon = item.icon;
+          const isLiveActive = item.href === '/voice' && liveCallState.status === 'connected';
+
+          if (sidebarCollapsed) {
+            // Collapsed Squircle Item matching user screenshot
+            return (
+              <div key={item.href} className="flex justify-center relative group">
+                <Link
+                  href={item.href}
+                  className={cn(
+                    'w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200',
+                    isActive
+                      ? 'bg-slate-100 text-blue-600 shadow-xs ring-1 ring-slate-200/90 font-bold'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  )}
+                  aria-label={item.label}
+                >
+                  <Icon
+                    size={20}
+                    className={cn(
+                      'transition-colors',
+                      isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-800',
+                      isLiveActive && 'animate-pulse text-emerald-500'
+                    )}
+                  />
+                  {isLiveActive && (
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white animate-ping" />
+                  )}
+                </Link>
+
+                {/* Floating Tooltip */}
+                <div className="absolute left-16 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                  {item.label}
+                </div>
+              </div>
+            );
+          }
+
+          // Expanded Navigation Item
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'group flex items-center justify-between px-3 py-2 rounded-lg transition-all text-xs font-medium',
+                'group flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all text-xs font-medium',
                 isActive
-                  ? 'bg-indigo-600 text-white font-semibold shadow-xs shadow-indigo-900/40'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-850/80 hover:bg-slate-800/60'
+                  ? 'bg-blue-50 text-blue-600 font-bold border border-blue-100 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               )}
-              title={sidebarCollapsed ? item.label : undefined}
             >
-              <div className="flex items-center gap-2.5 truncate">
-                <Icon
-                  size={16}
+              <div className="flex items-center gap-3 truncate">
+                <div
                   className={cn(
-                    'flex-shrink-0 transition-colors',
-                    isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200',
-                    isLiveActive && 'animate-pulse text-emerald-400'
+                    'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
+                    isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:text-slate-900'
                   )}
-                />
-                {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                >
+                  <Icon size={15} />
+                </div>
+                <span className="truncate">{item.label}</span>
               </div>
 
-              {!sidebarCollapsed && (
-                <div className="flex items-center gap-1.5">
-                  {isLiveActive ? (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 animate-pulse px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40">
-                      ON AIR
-                    </span>
-                  ) : item.badge ? (
-                    <span
-                      className={cn(
-                        'text-[10px] font-medium px-1.5 py-0.5 rounded border',
-                        isActive
-                          ? 'bg-indigo-700/80 text-white border-indigo-400/40'
-                          : 'bg-slate-800 text-indigo-300 border-indigo-500/30'
-                      )}
-                    >
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </div>
-              )}
+              {isLiveActive ? (
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full animate-pulse">
+                  ON AIR
+                </span>
+              ) : item.badge ? (
+                <span
+                  className={cn(
+                    'text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                    isActive
+                      ? 'bg-blue-100 text-blue-700 border-blue-200'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                  )}
+                >
+                  {item.badge}
+                </span>
+              ) : null}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom Footer: Operational Status (Section 5 & 6) */}
-      <div className="p-3 border-t border-slate-800/80 bg-[#080D1A] text-xs">
-        {!sidebarCollapsed ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 font-medium">Platform Mode</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 font-semibold">
-                <CheckCircle2 size={10} />
-                DEMO / READY
-              </span>
+      {/* Bottom Section: Telephony Status & User Avatar (Matching Screenshot) */}
+      <div className="p-3 border-t border-slate-100 bg-white relative">
+        {sidebarCollapsed ? (
+          <div className="flex flex-col items-center gap-3">
+            {/* Wallet / Telephony Icon in Squircle */}
+            <div
+              className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              title="Carrier SIP: Connected"
+            >
+              <Wallet size={16} />
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>Sarvam Voice Core</span>
-              <span className="text-slate-300 font-mono text-[10px]">Indus v1.4</span>
+
+            {/* User Avatar Circle with Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+                className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold text-xs hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
+                aria-label="User profile and logout"
+              >
+                PM
+              </button>
+
+              {/* Collapsed Avatar Dropdown */}
+              {avatarMenuOpen && (
+                <div className="absolute bottom-12 left-2 w-52 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 text-xs animate-in fade-in duration-150">
+                  <div className="px-3 py-2 border-b border-slate-100">
+                    <span className="font-bold text-slate-900 block">Praveen Manne</span>
+                    <span className="text-[11px] text-slate-500 truncate block">praveenmanne@yopmail.com</span>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors text-left"
+                    >
+                      <LogOut size={14} />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <div className="flex justify-center" title="Platform Operational">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          /* Expanded User Info Card */
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-xs">
+                  PM
+                </div>
+                <div className="truncate">
+                  <span className="font-bold text-slate-900 text-xs block truncate">
+                    Praveen Manne
+                  </span>
+                  <span className="text-[10px] text-blue-600 font-mono font-semibold block">
+                    {userRole}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Sign out"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 font-mono">
+              <span>Sarvam Engine:</span>
+              <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                ● Ready
+              </span>
+            </div>
           </div>
         )}
       </div>

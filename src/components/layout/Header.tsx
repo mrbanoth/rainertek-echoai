@@ -9,11 +9,11 @@ import {
   Shield,
   CheckCircle,
   AlertTriangle,
-  Info,
   ChevronDown,
   X,
   Radio,
-  ExternalLink,
+  LogOut,
+  Building2,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { UserRole } from '@/types';
@@ -36,63 +36,61 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
+  // If on login page, don't show header
+  if (pathname === '/login') return null;
+
   const getPageMeta = () => {
     switch (pathname) {
       case '/':
-        return { title: 'Overview Dashboard', section: 'Monitoring & Operations' };
+      case '/dashboard':
+        return { title: 'Dashboard', section: 'Overview & Telemetry' };
+      case '/voice':
       case '/live':
-        return { title: 'Live Voice Workspace', section: 'Voice Telephony' };
+        return { title: 'Voice Workspace', section: 'Interactive AI Telephony' };
       case '/agents':
-        return { title: 'AI Agents & Prompt Engineering', section: 'Agent Management' };
-      case '/knowledge':
-        return { title: 'Knowledge Base & Assistant Playground', section: 'Document Grounding' };
+        return { title: 'Agents & Knowledge', section: 'Prompt & Document Grounding' };
       case '/calls':
-        return { title: 'Call History & Event Logs', section: 'Telephony Records' };
-      case '/inbound':
-        return { title: 'Inbound Call Routing', section: 'Telephony Ingress' };
-      case '/campaigns':
-        return { title: 'Outbound Calling Campaigns', section: 'Campaign Automation' };
-      case '/analytics':
-        return { title: 'Analytics & Usage Telemetry', section: 'Intelligence & Cost' };
-      case '/integrations':
-        return { title: 'Enterprise Integrations Catalogue', section: 'System Connectors' };
-      case '/team':
-        return { title: 'Team Directory & Access Roles', section: 'Governance' };
-      case '/audit':
-        return { title: 'Compliance & Audit Trail', section: 'Security & GxP' };
+        return { title: 'Call History', section: 'Telephony Session Logs' };
       case '/settings':
-        return { title: 'General Platform Settings', section: 'Configuration' };
+        return { title: 'Team & Settings', section: 'Governance, Roles & System' };
       default:
-        return { title: 'RainerTek EchoAI', section: 'Voice Operations' };
+        return { title: 'RainerTek EchoAI', section: 'Voice Platform' };
     }
   };
 
   const meta = getPageMeta();
 
-  // Search quick jump
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      router.push('/login');
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
     setSearchOpen(false);
-    if (query.includes('agent') || query.includes('prompt')) router.push('/agents');
-    else if (query.includes('call') || query.includes('phone')) router.push('/calls');
-    else if (query.includes('doc') || query.includes('sop') || query.includes('policy')) router.push('/knowledge');
-    else if (query.includes('campaign')) router.push('/campaigns');
-    else if (query.includes('voice') || query.includes('live')) router.push('/live');
-    else if (query.includes('audit') || query.includes('log')) router.push('/audit');
-    else router.push('/calls');
+    if (q.includes('call') || q.includes('transcript')) router.push('/calls');
+    else if (q.includes('agent') || q.includes('doc') || q.includes('prompt')) router.push('/agents');
+    else if (q.includes('voice') || q.includes('live')) router.push('/voice');
+    else if (q.includes('team') || q.includes('setting') || q.includes('role')) router.push('/settings');
+    else router.push('/dashboard');
   };
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-800 bg-[#0B1120]/95 backdrop-blur px-4 md:px-6">
-        {/* Left: Mobile Toggle & Breadcrumbs */}
+      <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 backdrop-blur px-4 md:px-6">
+        {/* Left: Mobile Toggle & Page Title */}
         <div className="flex items-center gap-3">
           <button
             onClick={toggleSidebar}
-            className="md:hidden flex items-center justify-center w-8 h-8 rounded text-slate-400 hover:text-white hover:bg-slate-800"
-            aria-label="Toggle Navigation"
+            className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            aria-label="Toggle navigation"
           >
             <Menu size={18} />
           </button>
@@ -101,20 +99,20 @@ export function Header() {
             <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
               <span>EchoAI</span>
               <span>/</span>
-              <span className="text-slate-300">{meta.section}</span>
+              <span className="text-slate-600">{meta.section}</span>
               {selectedProject !== 'ALL' && (
                 <>
                   <span>/</span>
-                  <span className="font-mono text-indigo-400 bg-indigo-950/80 px-1.5 py-0.2 rounded border border-indigo-500/30 text-[10px] font-semibold">
+                  <span className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 text-[10px] font-bold">
                     {selectedProject}
                   </span>
                 </>
               )}
             </div>
-            <h1 className="text-sm md:text-base font-semibold text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-sm md:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
               {meta.title}
-              {pathname === '/live' && liveCallState.status === 'connected' && (
-                <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse">
+              {pathname === '/voice' && liveCallState.status === 'connected' && (
+                <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-bold animate-pulse">
                   <Radio size={12} />
                   LIVE CALL ACTIVE
                 </span>
@@ -128,100 +126,88 @@ export function Header() {
           {/* Global Search Button */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-700/80 text-xs text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-colors"
-            title="Global search across entities"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-colors"
+            title="Global Search"
           >
             <Search size={14} className="text-slate-400" />
-            <span className="hidden sm:inline">Search records...</span>
-            <kbd className="hidden sm:inline px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-slate-400">
+            <span className="hidden sm:inline">Search platform...</span>
+            <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono text-[10px] text-slate-400">
               Ctrl+K
             </kbd>
           </button>
 
-          {/* Environment Status Indicator (Section 5) */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[11px] font-medium text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Echo Telephony: Operational</span>
-            <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-400 px-1.5 rounded">DEMO</span>
+          {/* Environment Status Badge */}
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-medium text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Telephony: Active</span>
           </div>
 
-          {/* Notifications Button */}
+          {/* Notifications Trigger */}
           <div className="relative">
             <button
               onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="relative p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="Recent alerts & audit events"
+              className="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              title="Recent alerts"
               aria-label="Open notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-[#0B1120]" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
             </button>
 
-            {/* Notifications Dropdown Panel */}
+            {/* Notifications Dropdown */}
             {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 md:w-96 rounded-lg bg-[#0F172A] border border-slate-700 shadow-xl shadow-black/50 z-50 overflow-hidden text-xs">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-[#080D1A]">
-                  <span className="font-semibold text-slate-200 flex items-center gap-1.5">
-                    <Shield size={14} className="text-indigo-400" />
-                    Security & Operational Feed
+              <div className="absolute right-0 mt-2 w-80 md:w-96 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 overflow-hidden text-xs">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
+                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <Shield size={14} className="text-blue-600" />
+                    Security & Event Feed
                   </span>
                   <button
                     onClick={() => setNotificationsOpen(false)}
-                    className="text-slate-400 hover:text-white"
+                    className="text-slate-400 hover:text-slate-700"
                   >
                     <X size={14} />
                   </button>
                 </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-800/80">
-                  {auditLogs.slice(0, 5).map((log) => (
-                    <div key={log.id} className="p-3 hover:bg-slate-800/50 transition-colors">
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                  {auditLogs.slice(0, 4).map((log) => (
+                    <div key={log.id} className="p-3 hover:bg-slate-50 transition-colors">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-slate-300 flex items-center gap-1">
+                        <span className="font-semibold text-slate-800 flex items-center gap-1">
                           {log.result === 'SUCCESS' ? (
-                            <CheckCircle size={12} className="text-emerald-400" />
+                            <CheckCircle size={12} className="text-emerald-500" />
                           ) : (
-                            <AlertTriangle size={12} className="text-amber-400" />
+                            <AlertTriangle size={12} className="text-amber-500" />
                           )}
                           {log.action}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500">{log.timestamp.slice(11)}</span>
+                        <span className="text-[10px] font-mono text-slate-400">{log.timestamp.slice(11)}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-tight">{log.details}</p>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
-                        <span>Project: <strong className="text-slate-400">{log.projectId}</strong></span>
+                      <p className="text-[11px] text-slate-500">{log.details}</p>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                        <span>Department: <strong className="text-slate-700">{log.projectId}</strong></span>
                         <span>•</span>
                         <span>Actor: {log.actor}</span>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="px-4 py-2 border-t border-slate-800 bg-[#080D1A] text-right">
-                  <button
-                    onClick={() => {
-                      setNotificationsOpen(false);
-                      router.push('/audit');
-                    }}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold"
-                  >
-                    View All Audit Logs →
-                  </button>
-                </div>
               </div>
             )}
           </div>
 
-          {/* User Profile & Role Switcher (Section 16 Governance) */}
+          {/* User Profile Pill with Role & Logout */}
           <div className="relative">
             <button
               onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-              className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-md bg-slate-900 border border-slate-700/80 hover:bg-slate-850 hover:border-slate-600 transition-colors text-left"
+              className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors text-left"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">
-                RT
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                PM
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-xs font-medium text-slate-200 leading-none">RainerTek Ops</span>
-                <span className="text-[10px] text-indigo-400 font-mono font-medium leading-tight mt-0.5">
+                <span className="text-xs font-semibold text-slate-900 leading-none">Praveen Manne</span>
+                <span className="text-[10px] text-blue-600 font-mono font-semibold mt-0.5">
                   {userRole}
                 </span>
               </div>
@@ -229,29 +215,40 @@ export function Header() {
             </button>
 
             {roleDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 rounded-lg bg-[#0F172A] border border-slate-700 shadow-xl shadow-black/50 z-50 py-1 text-xs">
-                <div className="px-3 py-2 border-b border-slate-800 text-[11px] text-slate-400">
-                  <span>Logged in as </span>
-                  <span className="font-semibold text-slate-200">admin@rainertek.com</span>
+              <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 text-xs">
+                <div className="px-3 py-2 border-b border-slate-100">
+                  <span className="text-[10px] text-slate-400 uppercase font-mono block">Signed in as</span>
+                  <span className="font-bold text-slate-900 truncate block">praveenmanne@yopmail.com</span>
                 </div>
-                <div className="px-3 py-1.5 text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  Switch Active Role
+
+                <div className="py-1">
+                  <div className="px-3 py-1 text-[10px] font-mono text-slate-400 uppercase">Switch Active Role</div>
+                  {(['Administrator', 'Operator', 'Read-only viewer'] as UserRole[]).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => {
+                        setUserRole(r);
+                        setRoleDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                        userRole === r ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{r}</span>
+                      {userRole === r && <CheckCircle size={12} className="text-blue-600" />}
+                    </button>
+                  ))}
                 </div>
-                {(['Administrator', 'Operator', 'Read-only viewer'] as UserRole[]).map((r) => (
+
+                <div className="pt-1 border-t border-slate-100">
                   <button
-                    key={r}
-                    onClick={() => {
-                      setUserRole(r);
-                      setRoleDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-slate-800 text-xs ${
-                      userRole === r ? 'text-indigo-400 font-semibold bg-indigo-950/40' : 'text-slate-300'
-                    }`}
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
                   >
-                    <span>{r}</span>
-                    {userRole === r && <CheckCircle size={12} className="text-indigo-400" />}
+                    <LogOut size={14} />
+                    <span>Sign out</span>
                   </button>
-                ))}
+                </div>
               </div>
             )}
           </div>
@@ -260,17 +257,14 @@ export function Header() {
 
       {/* Global Search Dialog Modal */}
       {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[#0F172A] border border-slate-700 shadow-2xl p-4 text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Search size={16} className="text-indigo-400" />
-                Global Search (EchoAI Enterprise)
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white border border-slate-200 shadow-2xl p-5 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Search size={16} className="text-blue-600" />
+                Quick Search Platform
               </span>
-              <button
-                onClick={() => setSearchOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
+              <button onClick={() => setSearchOpen(false)} className="text-slate-400 hover:text-slate-800">
                 <X size={16} />
               </button>
             </div>
@@ -278,40 +272,37 @@ export function Header() {
               <input
                 type="text"
                 autoFocus
-                placeholder="Search agents, knowledge documents, phone numbers, campaigns..."
+                placeholder="Search dashboard, agents, knowledge documents, calls, settings..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs"
               />
             </form>
-            <div className="mt-3 space-y-1 text-slate-400 text-[11px]">
-              <span className="text-[10px] font-mono uppercase text-slate-500">Quick Shortcuts</span>
-              <div className="grid grid-cols-2 gap-1.5 pt-1">
-                <button
-                  onClick={() => { setSearchOpen(false); router.push('/live'); }}
-                  className="p-2 rounded bg-slate-900 hover:bg-slate-800 text-left border border-slate-800 text-slate-300"
-                >
-                  🎧 <strong>Live Voice</strong> — 3D Visualizer & calls
-                </button>
-                <button
-                  onClick={() => { setSearchOpen(false); router.push('/agents'); }}
-                  className="p-2 rounded bg-slate-900 hover:bg-slate-800 text-left border border-slate-800 text-slate-300"
-                >
-                  🤖 <strong>AI Agents</strong> — Prompt editor & testing
-                </button>
-                <button
-                  onClick={() => { setSearchOpen(false); router.push('/knowledge'); }}
-                  className="p-2 rounded bg-slate-900 hover:bg-slate-800 text-left border border-slate-800 text-slate-300"
-                >
-                  📄 <strong>Knowledge Base</strong> — Drag & drop upload
-                </button>
-                <button
-                  onClick={() => { setSearchOpen(false); router.push('/calls'); }}
-                  className="p-2 rounded bg-slate-900 hover:bg-slate-800 text-left border border-slate-800 text-slate-300"
-                >
-                  📞 <strong>Call History</strong> — Transcripts & audio
-                </button>
-              </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+              <button
+                onClick={() => { setSearchOpen(false); router.push('/dashboard'); }}
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 text-left font-medium"
+              >
+                📊 <strong>Dashboard</strong> — Metrics & activity
+              </button>
+              <button
+                onClick={() => { setSearchOpen(false); router.push('/voice'); }}
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 text-left font-medium"
+              >
+                🎙️ <strong>Voice Workspace</strong> — 3D AI assistant
+              </button>
+              <button
+                onClick={() => { setSearchOpen(false); router.push('/agents'); }}
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 text-left font-medium"
+              >
+                🤖 <strong>Agents & Knowledge</strong> — Prompts & docs
+              </button>
+              <button
+                onClick={() => { setSearchOpen(false); router.push('/calls'); }}
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 text-left font-medium"
+              >
+                📞 <strong>Call History</strong> — Transcripts & audio
+              </button>
             </div>
           </div>
         </div>

@@ -2,51 +2,51 @@
 
 @layer base {
   :root {
-    --background: #0A0F1D;
-    --foreground: #F8FAFC;
-    --card: #111A2E;
-    --card-foreground: #F8FAFC;
-    --popover: #111A2E;
-    --popover-foreground: #F8FAFC;
-    --primary: #6366F1;
+    --background: #FFFFFF;
+    --foreground: #0F172A;
+    --card: #FFFFFF;
+    --card-foreground: #0F172A;
+    --popover: #FFFFFF;
+    --popover-foreground: #0F172A;
+    --primary: #2563EB;
     --primary-foreground: #FFFFFF;
-    --secondary: #1E293B;
-    --secondary-foreground: #F1F5F9;
-    --muted: #0F172A;
-    --muted-foreground: #94A3B8;
-    --accent: #38BDF8;
+    --secondary: #F8FAFC;
+    --secondary-foreground: #1E293B;
+    --muted: #F1F5F9;
+    --muted-foreground: #64748B;
+    --accent: #3B82F6;
     --accent-foreground: #FFFFFF;
     --destructive: #EF4444;
     --destructive-foreground: #FFFFFF;
-    --border: #1E293B;
-    --input: #1E293B;
-    --ring: #6366F1;
-    --radius: 0.5rem;
+    --border: #E2E8F0;
+    --input: #E2E8F0;
+    --ring: #2563EB;
+    --radius: 0.75rem;
   }
 }
 
 body {
-  background-color: #0A0F1D;
-  color: #F8FAFC;
+  background-color: #F8FAFC;
+  color: #0F172A;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle clean scrollbars */
+/* Crisp clean scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B1120;
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94A3B8;
 }
