@@ -5,59 +5,80 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
-  PhoneCall,
+  Users,
   BookOpen,
-  History,
+  Phone,
+  PhoneIncoming,
+  Megaphone,
   Settings,
+  Search,
   ChevronLeft,
   ChevronRight,
-  Key,
-  Phone,
+  ExternalLink,
+  Code2,
+  FileText,
+  BarChart2,
+  Layers,
   Sparkles,
-  CheckCircle2,
-  AlertCircle,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 
-export const NAV_ITEMS = [
-  { href: '/', label: 'Live Voice Call', icon: PhoneCall, desc: 'Real-time conversation' },
-  { href: '/knowledge', label: 'Knowledge Context', icon: BookOpen, desc: 'What the AI knows' },
-  { href: '/calls', label: 'Call History', icon: History, desc: 'Real call sessions' },
-  { href: '/settings', label: 'Sarvam & Phone Setup', icon: Settings, desc: 'API key & hotline' },
+export const NAV_SECTIONS = [
+  {
+    title: 'Build',
+    items: [
+      { href: '/', label: 'Agents', icon: Users },
+      { href: '/knowledge', label: 'Knowledge base', icon: BookOpen },
+    ],
+  },
+  {
+    title: 'Deploy',
+    items: [
+      { href: '/numbers', label: 'Phone numbers', icon: Phone },
+      { href: '/inbound', label: 'Inbound calls', icon: PhoneIncoming },
+      { href: '/campaigns', label: 'Outbound campaigns', icon: Megaphone },
+    ],
+  },
+  {
+    title: 'Configure',
+    items: [
+      { href: '/settings', label: 'Settings & API Keys', icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar, sarvamApiKey, hotlineNumber } = useApp();
+  const { sidebarCollapsed, toggleSidebar, sarvamApiKey } = useApp();
 
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-slate-200 bg-white text-slate-700 transition-all duration-300 ease-in-out z-30 select-none shadow-xs',
-        sidebarCollapsed ? 'w-20' : 'w-64'
+        'relative flex flex-col border-r border-slate-200 bg-white text-slate-700 transition-all duration-200 ease-in-out z-30 select-none min-h-screen',
+        sidebarCollapsed ? 'w-18' : 'w-60'
       )}
     >
-      {/* Brand Header with Transparent Logo */}
-      <div className="flex h-18 items-center px-4 border-b border-slate-100 justify-between">
-        <Link href="/" className="flex items-center gap-3 overflow-hidden group">
-          <div className="relative flex-shrink-0 w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+      {/* Brand Header */}
+      <div className="flex h-16 items-center px-4 border-b border-slate-100 justify-between">
+        <Link href="/" className="flex items-center gap-2.5 overflow-hidden group">
+          <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <Image
               src="/logo.png"
               alt="RainerTek EchoAI Logo"
-              width={40}
-              height={40}
+              width={32}
+              height={32}
               className="w-full h-full object-contain"
               priority
             />
           </div>
           {!sidebarCollapsed && (
             <div className="flex flex-col truncate">
-              <span className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-1">
-                RainerTek <span className="bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">EchoAI</span>
+              <span className="text-sm font-semibold tracking-tight text-slate-900">
+                Voice Agents
               </span>
-              <span className="text-[11px] text-slate-500 font-medium tracking-wide">
-                Real-Time Voice Assistant
+              <span className="text-[10px] text-slate-500 font-mono">
+                RainerTek EchoAI
               </span>
             </div>
           )}
@@ -65,99 +86,99 @@ export function Sidebar() {
         <button
           onClick={toggleSidebar}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          className="hidden md:flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
-          {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </div>
 
-      {/* Hotline Badge */}
+      {/* Quick Search simulation */}
       {!sidebarCollapsed && (
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            <div className="flex items-center gap-2 truncate">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-slate-500 text-[11px]">Hotline:</span>
-              <span className="font-semibold text-slate-800 font-mono text-xs truncate">
-                {hotlineNumber || 'Not Set'}
-              </span>
+        <div className="px-3 pt-3 pb-1">
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <Search size={14} className="text-slate-400" />
+              <span>Search</span>
             </div>
+            <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono text-[10px] text-slate-500">
+              Ctrl+K
+            </kbd>
           </div>
         </div>
       )}
 
-      {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 relative text-sm',
-                isActive
-                  ? 'bg-indigo-50/80 text-indigo-700 font-semibold border border-indigo-200/80 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              )}
-              title={sidebarCollapsed ? item.label : undefined}
-            >
-              <div
-                className={cn(
-                  'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
-                  isActive
-                    ? 'bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700'
-                )}
-              >
-                <Icon size={17} />
+      {/* Navigation Sections */}
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4 text-xs">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.title} className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-2.5 py-1 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                {section.title}
               </div>
-              {!sidebarCollapsed && (
-                <div className="flex flex-col truncate">
-                  <span className="truncate leading-snug">{item.label}</span>
-                  <span className="text-[11px] font-normal text-slate-400 truncate">
-                    {item.desc}
-                  </span>
-                </div>
-              )}
-            </Link>
-          );
-        })}
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'group flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors text-xs font-medium',
+                      isActive
+                        ? 'bg-slate-100 text-slate-900 font-semibold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    )}
+                    title={sidebarCollapsed ? item.label : undefined}
+                  >
+                    <Icon
+                      size={16}
+                      className={cn(
+                        'flex-shrink-0',
+                        isActive ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'
+                      )}
+                    />
+                    {!sidebarCollapsed && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Sarvam AI Status Footer */}
-      <div className="p-3 border-t border-slate-100 bg-slate-50/60">
+      {/* Bottom Footer: Documentation & Quick Status */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50 text-xs">
         {!sidebarCollapsed ? (
-          <Link
-            href="/settings"
-            className="block p-3 rounded-xl bg-white border border-slate-200 hover:border-indigo-300 transition-colors group shadow-xs"
-          >
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                <Sparkles size={13} className="text-indigo-600" />
-                Sarvam AI Engine
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500">Sarvam Engine</span>
+              <span
+                className={`font-medium ${
+                  sarvamApiKey ? 'text-emerald-600' : 'text-amber-600'
+                }`}
+              >
+                {sarvamApiKey ? '● Ready' : '○ Key Needed'}
               </span>
-              {sarvamApiKey ? (
-                <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
-                  <CheckCircle2 size={11} /> Connected
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium text-amber-600 flex items-center gap-1">
-                  <AlertCircle size={11} /> Add Key
-                </span>
-              )}
             </div>
-            <p className="text-[11px] text-slate-500 leading-snug">
-              {sarvamApiKey
-                ? 'Bulbul Text-to-Speech active'
-                : 'Click to configure API key'}
-            </p>
-          </Link>
+            <a
+              href="https://docs.sarvam.ai/conversations/overview"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-900 transition-colors"
+            >
+              <FileText size={12} />
+              <span>Sarvam Docs</span>
+              <ExternalLink size={10} className="ml-auto text-slate-400" />
+            </a>
+          </div>
         ) : (
-          <div className="flex justify-center" title="Sarvam AI Voice">
-            <Sparkles size={18} className={sarvamApiKey ? 'text-emerald-500' : 'text-amber-500'} />
+          <div className="flex justify-center" title="Documentation">
+            <FileText size={16} className="text-slate-400" />
           </div>
         )}
       </div>
