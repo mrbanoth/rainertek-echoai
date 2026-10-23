@@ -2,211 +2,302 @@
 
 import React, { useState } from 'react';
 import {
-  Search,
-  MoreVertical,
-  Plus,
-  FileText,
-  Clock,
   PhoneIncoming,
+  Plus,
+  Phone,
   CheckCircle2,
-  Calendar,
+  AlertTriangle,
+  Play,
+  RotateCcw,
+  Sliders,
+  ShieldCheck,
+  Globe,
+  ChevronRight,
+  X,
+  Radio,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { ProjectId } from '@/types';
 
-export default function InboundCallsPage() {
-  const { inboundMetrics, inboundCalls, timeframe, setTimeframe } = useApp();
-  const [activeTab, setActiveTab] = useState<'calls' | 'concurrency'>('calls');
-  const [searchQuery, setSearchQuery] = useState('');
+export default function InboundCallingRoutesPage() {
+  const { calls, agents, projects, selectedProject, userRole } = useApp();
 
-  // Calculate total calls
-  const totalCallsCount = 10;
+  const [inboundRoutes, setInboundRoutes] = useState([
+    {
+      id: 'route-hrms-primary',
+      phoneNumber: '+91 7965 481 286',
+      provider: 'Sarvam Vobiz SIP Trunk',
+      projectId: 'HRMS' as ProjectId,
+      agentId: 'agent-hrms-concierge',
+      agentName: 'Echo HR Concierge',
+      status: 'active',
+      greeting: 'Welcome to RainerTek Employee Services. Please state your badge ID or query.',
+      supportedLanguages: ['en-IN', 'hi-IN'],
+      fallbackNumber: '+91 80 4912 3000',
+      totalCalls: 342,
+    },
+    {
+      id: 'route-qms-triage',
+      phoneNumber: '+91 7965 481 287',
+      provider: 'Sarvam Vobiz SIP Trunk',
+      projectId: 'QMS' as ProjectId,
+      agentId: 'agent-qms-auditor',
+      agentName: 'Echo Quality Sentinel',
+      status: 'active',
+      greeting: 'RainerTek Quality deviations hotline. All statements are logged under 21 CFR Part 11.',
+      supportedLanguages: ['en-IN'],
+      fallbackNumber: '+91 80 4912 3001',
+      totalCalls: 189,
+    },
+    {
+      id: 'route-lims-specimen',
+      phoneNumber: '+91 7965 481 288',
+      provider: 'Sarvam Vobiz SIP Trunk',
+      projectId: 'LIMS' as ProjectId,
+      agentId: 'agent-lims-lab',
+      agentName: 'Echo LIMS Dispatcher',
+      status: 'active',
+      greeting: 'RainerTek LIMS automated chain of custody intake.',
+      supportedLanguages: ['en-IN'],
+      fallbackNumber: '+91 80 4912 3002',
+      totalCalls: 145,
+    },
+  ]);
 
-  const filteredInbounds = inboundCalls.filter(
-    (c) =>
-      c.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phoneNumber.includes(searchQuery) ||
-      c.appId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newNumber, setNewNumber] = useState('');
+  const [newProjectId, setNewProjectId] = useState<ProjectId>('HRMS');
+  const [newAgentId, setNewAgentId] = useState(agents[0]?.id || '');
+  const [newGreeting, setNewGreeting] = useState('');
+  const [newFallback, setNewFallback] = useState('+91 80 4912 3000');
+
+  const inboundCallsList = calls.filter((c) => c.direction === 'inbound');
+
+  const handleCreateRoute = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNumber.trim()) return;
+    const targetAgent = agents.find((a) => a.id === newAgentId);
+
+    setInboundRoutes((prev) => [
+      ...prev,
+      {
+        id: `route-${Date.now()}`,
+        phoneNumber: newNumber,
+        provider: 'Sarvam Vobiz SIP Trunk',
+        projectId: newProjectId,
+        agentId: newAgentId,
+        agentName: targetAgent?.name || 'Assigned Agent',
+        status: 'active',
+        greeting: newGreeting || 'Thank you for calling RainerTek.',
+        supportedLanguages: ['en-IN'],
+        fallbackNumber: newFallback,
+        totalCalls: 0,
+      },
+    ]);
+
+    setIsModalOpen(false);
+    setNewNumber('');
+    setNewGreeting('');
+  };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto py-2">
-      {/* Top Controls: Tabs & 12h/24h Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        {/* Calls vs Concurrency Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-full bg-slate-100 max-w-xs text-xs font-medium">
-          <button
-            onClick={() => setActiveTab('calls')}
-            className={`px-4 py-1.5 rounded-full transition-colors ${
-              activeTab === 'calls'
-                ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Calls
-          </button>
-          <button
-            onClick={() => setActiveTab('concurrency')}
-            className={`px-4 py-1.5 rounded-full transition-colors ${
-              activeTab === 'concurrency'
-                ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Concurrency
-          </button>
-        </div>
-
-        {/* 12h / 24h Toggle */}
-        <div className="flex items-center gap-1 p-1 rounded-full bg-slate-100 text-xs font-medium">
-          <button
-            onClick={() => setTimeframe('12h')}
-            className={`px-3 py-1 rounded-full transition-colors ${
-              timeframe === '12h'
-                ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            12h
-          </button>
-          <button
-            onClick={() => setTimeframe('24h')}
-            className={`px-3 py-1 rounded-full transition-colors ${
-              timeframe === '24h'
-                ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            24h
-          </button>
-        </div>
-      </div>
-
-      {/* The Loved Chart Container (Matching Screenshot 4) */}
-      <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-xs space-y-6">
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-[#111A2E] border border-slate-800">
         <div>
-          <div className="text-xs text-slate-500 flex items-center gap-1">
-            <span>Calls</span>
-            <span className="cursor-help text-slate-400">ⓘ</span>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              <PhoneIncoming size={18} className="text-cyan-400" />
+              Inbound Call Routing & Telephony Ingress
+            </h2>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-bold">
+              SARVAM VOBIZ TRUNKED
+            </span>
           </div>
-          <div className="text-3xl font-medium text-slate-900 font-serif mt-1">
-            {totalCallsCount}
-          </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Associate carrier phone numbers with designated AI agents, define greeting parameters, and set fallback human escalation routes.
+          </p>
         </div>
 
-        {/* High Resolution Minimal Bar Chart */}
-        <div className="relative pt-6 pb-2">
-          {/* Dashed Horizontal Grid Lines */}
-          <div className="absolute inset-x-0 top-12 border-b border-dashed border-slate-200" />
-          <div className="absolute inset-x-0 top-24 border-b border-dashed border-slate-200" />
-          <div className="absolute inset-x-0 bottom-8 border-b border-slate-200" />
+        <button
+          onClick={() => setIsModalOpen(true)}
+          disabled={userRole === 'Read-only viewer'}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs disabled:opacity-40 transition-colors"
+        >
+          <Plus size={14} />
+          Assign Telephony Route
+        </button>
+      </div>
 
-          {/* Left Axis Labels */}
-          <div className="absolute left-0 top-10 text-[10px] text-slate-400 font-mono">
-            4.15
-          </div>
-          <div className="absolute left-0 top-22 text-[10px] text-slate-400 font-mono">
-            2
-          </div>
-          <div className="absolute left-0 bottom-9 text-[10px] text-slate-400 font-mono">
-            0
-          </div>
+      {/* Inbound Routes Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {inboundRoutes.map((route) => (
+          <div
+            key={route.id}
+            className="p-5 rounded-xl bg-[#111A2E] border border-slate-800 flex flex-col justify-between space-y-4 text-xs"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs text-cyan-400 font-bold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">
+                  {route.phoneNumber}
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/30 font-semibold">
+                  {route.projectId}
+                </span>
+              </div>
 
-          {/* Y Axis Title */}
-          <div className="absolute -left-6 top-1/2 -rotate-90 text-[10px] text-slate-400 font-medium">
-            Number of calls
+              <div className="mt-3">
+                <span className="text-[10px] text-slate-500 font-mono block">Bound AI Agent</span>
+                <span className="text-sm font-bold text-white">{route.agentName}</span>
+              </div>
+
+              <div className="mt-2.5 p-2.5 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 italic">
+                "{route.greeting}"
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 space-y-2 text-[11px] font-mono text-slate-400">
+              <div className="flex justify-between">
+                <span>Fallback Transfer:</span>
+                <span className="text-slate-300">{route.fallbackNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Total Calls Ingested:</span>
+                <span className="text-white font-bold">{route.totalCalls} calls</span>
+              </div>
+            </div>
           </div>
+        ))}
+      </div>
 
-          {/* Bar Chart Columns */}
-          <div className="h-44 flex items-end justify-between pl-10 pr-6 pb-8">
-            {inboundMetrics.map((m, idx) => {
-              const value = activeTab === 'calls' ? m.calls : m.concurrency;
-              const heightPct = Math.min(100, (value / 4.15) * 100);
+      {/* Recent Inbound Calls Feed */}
+      <div className="p-5 rounded-xl bg-[#111A2E] border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white">Recent Inbound Telephony Traffic</h3>
+          <span className="text-[11px] font-mono text-slate-400">
+            {inboundCallsList.length} verified sessions
+          </span>
+        </div>
 
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group">
-                  {value > 0 ? (
-                    <div
-                      className="w-2.5 sm:w-3 bg-blue-600 rounded-xs transition-all duration-300 group-hover:bg-blue-700 relative"
-                      style={{ height: `${heightPct}%` }}
-                    >
-                      {/* Tooltip on hover */}
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-mono px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap shadow-xs">
-                        {value} {activeTab}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-0 w-2.5" />
-                  )}
-                  <span className="absolute bottom-1 text-[11px] text-slate-400 font-mono">
-                    {m.timeLabel}
-                  </span>
+        <div className="space-y-2">
+          {inboundCallsList.slice(0, 4).map((call) => (
+            <div
+              key={call.id}
+              className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <PhoneIncoming size={14} className="text-cyan-400" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-white">{call.callerNumber}</span>
+                    <span className="text-slate-400">→ {call.agentName}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono">{call.startTime}</span>
                 </div>
-              );
-            })}
-          </div>
+              </div>
 
-          <div className="text-center text-[11px] text-slate-400 pt-1">Time</div>
+              <div className="flex items-center gap-3 font-mono text-right">
+                <span className="text-slate-400">{Math.floor(call.durationSeconds / 60)}m {call.durationSeconds % 60}s</span>
+                <span className="text-emerald-400 font-semibold text-[10px] bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/30">
+                  {call.outcome}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Inbound Routing Table & Search */}
-      <div className="space-y-3 pt-2">
-        {/* Search input */}
-        <div className="relative max-w-xs">
-          <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search inbounds"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
-          />
-        </div>
+      {/* Assign Route Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl bg-[#0F172A] border border-slate-700 p-6 space-y-4 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-white text-base">Assign Telephony Number Route</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
 
-        {/* Table matching Screenshot 4 */}
-        <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/60 text-slate-500 font-medium text-[11px] border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4 font-normal">Name</th>
-                  <th className="py-3 px-4 font-normal">Status</th>
-                  <th className="py-3 px-4 font-normal">App ID</th>
-                  <th className="py-3 px-4 font-normal">Phone numbers</th>
-                  <th className="py-3 px-4 font-normal">Created At</th>
-                  <th className="py-3 px-4 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredInbounds.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-medium text-slate-900">
-                      {item.agentName}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Active
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-500">
-                      {item.appId}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-800 font-medium">
-                      {item.phoneNumber}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-500">
-                      {item.createdAt}
-                    </td>
-                    <td className="py-3.5 px-4 text-right text-slate-400 hover:text-slate-700 cursor-pointer">
-                      <MoreVertical size={14} className="ml-auto" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <form onSubmit={handleCreateRoute} className="space-y-3">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Carrier Phone Number</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="+91 7965 481 289"
+                  value={newNumber}
+                  onChange={(e) => setNewNumber(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Project Scope</label>
+                  <select
+                    value={newProjectId}
+                    onChange={(e) => setNewProjectId(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none text-xs"
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Target Agent</label>
+                  <select
+                    value={newAgentId}
+                    onChange={(e) => setNewAgentId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none text-xs"
+                  >
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Greeting Prompt</label>
+                <textarea
+                  rows={2}
+                  placeholder="Welcome to RainerTek. How may I assist you?"
+                  value={newGreeting}
+                  onChange={(e) => setNewGreeting(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Fallback Transfer Destination</label>
+                <input
+                  type="text"
+                  value={newFallback}
+                  onChange={(e) => setNewFallback(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs font-mono"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
+                >
+                  Activate Route
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

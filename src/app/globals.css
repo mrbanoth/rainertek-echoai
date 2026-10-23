@@ -2,32 +2,32 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
-    --card: #ffffff;
-    --card-foreground: #0f172a;
-    --popover: #ffffff;
-    --popover-foreground: #0f172a;
-    --primary: #4f46e5;
-    --primary-foreground: #ffffff;
-    --secondary: #f1f5f9;
-    --secondary-foreground: #1e293b;
-    --muted: #f8fafc;
-    --muted-foreground: #64748b;
-    --accent: #0284c7;
-    --accent-foreground: #ffffff;
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-    --border: #e2e8f0;
-    --input: #e2e8f0;
-    --ring: #4f46e5;
-    --radius: 0.75rem;
+    --background: #0A0F1D;
+    --foreground: #F8FAFC;
+    --card: #111A2E;
+    --card-foreground: #F8FAFC;
+    --popover: #111A2E;
+    --popover-foreground: #F8FAFC;
+    --primary: #6366F1;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1E293B;
+    --secondary-foreground: #F1F5F9;
+    --muted: #0F172A;
+    --muted-foreground: #94A3B8;
+    --accent: #38BDF8;
+    --accent-foreground: #FFFFFF;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+    --border: #1E293B;
+    --input: #1E293B;
+    --ring: #6366F1;
+    --radius: 0.5rem;
   }
 }
 
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #0A0F1D;
+  color: #F8FAFC;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
 }
@@ -39,14 +39,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #0B1120;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #1E293B;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #334155;
 }
