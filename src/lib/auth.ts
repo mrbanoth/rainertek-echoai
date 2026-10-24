@@ -17,7 +17,7 @@ export const DEMO_USER: AuthUser = {
   name: 'Praveen Manne',
   email: 'praveenmanne@yopmail.com',
   role: 'Administrator',
-  departments: ['HR', 'QA/QMS', 'LIMS', 'IT', 'Engineering'],
+  departments: ['Executive', 'Voice Operations', 'IT & Security', 'Engineering'],
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
 };
 

@@ -41,7 +41,7 @@ export default function OutboundCampaignsPage() {
 
   // New Campaign Form State
   const [campName, setCampName] = useState('');
-  const [campProjectId, setCampProjectId] = useState<ProjectId>('HRMS');
+  const [campProjectId, setCampProjectId] = useState<ProjectId>('GENERAL');
   const [campAgentId, setCampAgentId] = useState<string>(agents[0]?.id || '');
   const [campScript, setCampScript] = useState('');
   const [campContactCount, setCampContactCount] = useState(150);

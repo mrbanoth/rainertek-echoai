@@ -1,4 +1,4 @@
-export type ProjectId = 'HRMS' | 'QMS' | 'LIMS' | 'GENERAL' | string;
+export type ProjectId = string;
 
 export interface EnterpriseProject {
   id: ProjectId;
@@ -68,13 +68,14 @@ export interface AIAgentConfig {
     recordCall: boolean;
   };
   assignedPhoneNumber?: string;
+  channel?: 'inbound' | 'outbound';
   totalCalls: number;
   successRate: number;
   updatedAt: string;
 }
 
 export type DocumentStatus = 'uploaded' | 'processing' | 'indexed' | 'failed' | 'archived';
-export type DocumentFormat = 'pdf' | 'markdown' | 'txt' | 'docx';
+export type DocumentFormat = 'pdf' | 'markdown' | 'txt' | 'docx' | 'csv';
 
 export interface KnowledgeDoc {
   id: string;
@@ -161,7 +162,7 @@ export interface CampaignRecord {
 export interface IntegrationCard {
   id: string;
   name: string;
-  category: 'voice' | 'hrms' | 'qms' | 'lims' | 'telephony' | 'database';
+  category: 'voice' | 'telephony' | 'database' | 'custom' | string;
   status: 'connected' | 'degraded' | 'disconnected';
   capabilities: string[];
   lastSuccessfulOperation: string;

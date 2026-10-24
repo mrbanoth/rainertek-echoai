@@ -14,7 +14,6 @@ import {
   Globe,
   ChevronRight,
   X,
-  Radio,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ProjectId } from '@/types';
@@ -22,54 +21,51 @@ import { ProjectId } from '@/types';
 export default function InboundCallingRoutesPage() {
   const { calls, agents, projects, selectedProject, userRole } = useApp();
 
+  const echoHrNumber = process.env.NEXT_PUBLIC_SARVAM_PHONE_NUMBER || '+917965481343';
+
   const [inboundRoutes, setInboundRoutes] = useState([
     {
-      id: 'route-hrms-primary',
-      phoneNumber: '+91 7965 481 286',
-      provider: 'Sarvam Vobiz SIP Trunk',
-      projectId: 'HRMS' as ProjectId,
-      agentId: 'agent-hrms-concierge',
-      agentName: 'Echo HR Concierge',
-      status: 'active',
-      greeting: 'Welcome to RainerTek Employee Services. Please state your badge ID or query.',
+      id: 'route-primary-main',
+      phoneNumber: echoHrNumber,
+      provider: 'Sarvam',
+      projectId: 'GENERAL',
+      agentId: process.env.NEXT_PUBLIC_SARVAM_AGENT_ID || 'EchoHR-9c389d81-8777',
+      agentName: 'Not connected',
+      status: 'paused',
+      greeting: 'The previous EchoHR deployment was removed. Attach a new agent before this number can answer.',
       supportedLanguages: ['en-IN', 'hi-IN'],
-      fallbackNumber: '+91 80 4912 3000',
-      totalCalls: 342,
-    },
-    {
-      id: 'route-qms-triage',
-      phoneNumber: '+91 7965 481 287',
-      provider: 'Sarvam Vobiz SIP Trunk',
-      projectId: 'QMS' as ProjectId,
-      agentId: 'agent-qms-auditor',
-      agentName: 'Echo Quality Sentinel',
-      status: 'active',
-      greeting: 'RainerTek Quality deviations hotline. All statements are logged under 21 CFR Part 11.',
-      supportedLanguages: ['en-IN'],
-      fallbackNumber: '+91 80 4912 3001',
-      totalCalls: 189,
-    },
-    {
-      id: 'route-lims-specimen',
-      phoneNumber: '+91 7965 481 288',
-      provider: 'Sarvam Vobiz SIP Trunk',
-      projectId: 'LIMS' as ProjectId,
-      agentId: 'agent-lims-lab',
-      agentName: 'Echo LIMS Dispatcher',
-      status: 'active',
-      greeting: 'RainerTek LIMS automated chain of custody intake.',
-      supportedLanguages: ['en-IN'],
-      fallbackNumber: '+91 80 4912 3002',
-      totalCalls: 145,
+      fallbackNumber: 'Not set',
+      totalCalls: calls.filter((c) => c.direction === 'inbound').length,
     },
   ]);
 
+  React.useEffect(() => {
+    fetch('/api/sarvam/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.sarvamPhoneNumber) {
+          setInboundRoutes((prev) =>
+            prev.map((r, i) =>
+              i === 0
+                ? {
+                    ...r,
+                    phoneNumber: data.sarvamPhoneNumber,
+                    provider: 'Sarvam AI Samvaad Telephony',
+                  }
+                : r
+            )
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newNumber, setNewNumber] = useState('');
-  const [newProjectId, setNewProjectId] = useState<ProjectId>('HRMS');
+  const [newProjectId, setNewProjectId] = useState<ProjectId>('GENERAL');
   const [newAgentId, setNewAgentId] = useState(agents[0]?.id || '');
   const [newGreeting, setNewGreeting] = useState('');
-  const [newFallback, setNewFallback] = useState('+91 80 4912 3000');
+  const [newFallback, setNewFallback] = useState('');
 
   const inboundCallsList = calls.filter((c) => c.direction === 'inbound');
 
@@ -83,12 +79,12 @@ export default function InboundCallingRoutesPage() {
       {
         id: `route-${Date.now()}`,
         phoneNumber: newNumber,
-        provider: 'Sarvam Vobiz SIP Trunk',
+        provider: 'Echo AI phone line',
         projectId: newProjectId,
         agentId: newAgentId,
         agentName: targetAgent?.name || 'Assigned Agent',
         status: 'active',
-        greeting: newGreeting || 'Thank you for calling RainerTek.',
+        greeting: newGreeting || 'Hello, this is Echo AI.',
         supportedLanguages: ['en-IN'],
         fallbackNumber: newFallback,
         totalCalls: 0,
@@ -111,7 +107,7 @@ export default function InboundCallingRoutesPage() {
               Inbound Call Routing & Telephony Ingress
             </h2>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-bold">
-              SARVAM VOBIZ TRUNKED
+              ENTERPRISE SIP TRUNKED
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -224,7 +220,7 @@ export default function InboundCallingRoutesPage() {
                 <input
                   type="text"
                   required
-                  placeholder="+91 7965 481 289"
+                  placeholder="+917965481343"
                   value={newNumber}
                   onChange={(e) => setNewNumber(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs font-mono"
@@ -262,7 +258,7 @@ export default function InboundCallingRoutesPage() {
                 <label className="block text-slate-300 font-semibold mb-1">Greeting Prompt</label>
                 <textarea
                   rows={2}
-                  placeholder="Welcome to RainerTek. How may I assist you?"
+                  placeholder="Hello, this is Echo AI. How can I help you today?"
                   value={newGreeting}
                   onChange={(e) => setNewGreeting(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs"

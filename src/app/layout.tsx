@@ -10,12 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'RainerTek EchoAI — Real-Time Voice Platform',
-  description:
-    'Real-time AI Voice Assistant powered by Sarvam AI. Live voice calls, knowledge context grounding, and telephony integration.',
-  icons: {
-    icon: '/logo.png',
-  },
+  title: 'Echo AI',
+  description: 'Low-cost proof of concept for inbound and outbound voice agents.',
 };
 
 export default function RootLayout({
@@ -24,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full light`}>
-      <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 antialiased">
+    <html lang="en" className={`${inter.variable} h-full overflow-hidden light`}>
+      <body className="h-full overflow-hidden font-sans bg-slate-50 text-slate-900 antialiased">
         <AppLayout>{children}</AppLayout>
       </body>
     </html>

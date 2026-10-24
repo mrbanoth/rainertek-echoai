@@ -6,9 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   LayoutDashboard,
-  Radio,
   Bot,
   PhoneCall,
+  Mic,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +20,7 @@ import {
   User,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { AdminAvatar } from './AdminAvatar';
 import { EchoLogo } from './EchoLogo';
 import { cn } from '@/lib/utils';
 
@@ -31,15 +32,15 @@ export const SIX_CORE_NAV_ITEMS = [
     badge: null,
   },
   {
-    href: '/voice',
-    label: 'Voice Workspace',
-    icon: Radio,
-    badge: '3D AI',
-  },
-  {
     href: '/agents',
     label: 'Agents & Knowledge',
     icon: Bot,
+    badge: null,
+  },
+  {
+    href: '/live',
+    label: 'Live Call',
+    icon: Mic,
     badge: null,
   },
   {
@@ -65,7 +66,6 @@ export function Sidebar() {
     selectedProject,
     setSelectedProject,
     projects,
-    liveCallState,
     userRole,
   } = useApp();
 
@@ -84,7 +84,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-slate-200/90 bg-white text-slate-700 transition-all duration-300 ease-in-out z-30 select-none min-h-screen shadow-xs',
+        'flex h-dvh shrink-0 flex-col overflow-hidden border-r border-slate-200/90 bg-white text-slate-700 transition-all duration-300 ease-in-out z-30 select-none shadow-xs',
         sidebarCollapsed ? 'w-[76px]' : 'w-64'
       )}
     >
@@ -96,7 +96,7 @@ export function Sidebar() {
             'flex items-center gap-3 overflow-hidden group',
             sidebarCollapsed ? 'mx-auto' : ''
           )}
-          title="RainerTek EchoAI"
+          title="Echo AI"
         >
           {/* Custom Squircle Geometric Logo */}
           <EchoLogo size={42} showText={!sidebarCollapsed} />
@@ -127,42 +127,16 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Department Scope Switcher (Expanded only) */}
-      {!sidebarCollapsed && (
-        <div className="px-3.5 pt-3 pb-2 border-b border-slate-100">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1 px-1">
-            <span className="flex items-center gap-1">
-              <Building2 size={12} className="text-slate-400" />
-              Department Scope
-            </span>
-            <span className="text-[10px] text-blue-600 font-semibold font-mono">Isolated</span>
-          </div>
-          <select
-            value={selectedProject}
-            aria-label="Filter active workspace by department"
-            onChange={(e) => setSelectedProject(e.target.value)}
-            className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all cursor-pointer"
-          >
-            <option value="ALL">All Departments (Global)</option>
-            <option value="HRMS">HR (Human Resources)</option>
-            <option value="QMS">QA / QMS (Quality & GxP)</option>
-            <option value="LIMS">LIMS (Laboratory Science)</option>
-            <option value="IT">IT & Infrastructure</option>
-            <option value="DEV">Engineering / Dev Team</option>
-          </select>
-        </div>
-      )}
+
 
       {/* Navigation Items (Squircle Shape Matching Screenshot) */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+      <nav className="min-h-0 flex-1 overflow-hidden px-3 py-4 space-y-2">
         {SIX_CORE_NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href === '/voice' && pathname === '/live') ||
             (item.href === '/dashboard' && pathname === '/');
 
           const Icon = item.icon;
-          const isLiveActive = item.href === '/voice' && liveCallState.status === 'connected';
 
           if (sidebarCollapsed) {
             // Collapsed Squircle Item matching user screenshot
@@ -182,13 +156,9 @@ export function Sidebar() {
                     size={20}
                     className={cn(
                       'transition-colors',
-                      isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-800',
-                      isLiveActive && 'animate-pulse text-emerald-500'
+                      isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-800'
                     )}
                   />
-                  {isLiveActive && (
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white animate-ping" />
-                  )}
                 </Link>
 
                 {/* Floating Tooltip */}
@@ -223,11 +193,7 @@ export function Sidebar() {
                 <span className="truncate">{item.label}</span>
               </div>
 
-              {isLiveActive ? (
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full animate-pulse">
-                  ON AIR
-                </span>
-              ) : item.badge ? (
+              {item.badge ? (
                 <span
                   className={cn(
                     'text-[10px] font-semibold px-2 py-0.5 rounded-full border',
@@ -245,7 +211,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom Section: Telephony Status & User Avatar (Matching Screenshot) */}
-      <div className="p-3 border-t border-slate-100 bg-white relative">
+      <div className="shrink-0 border-t border-slate-100 bg-white p-3 relative">
         {sidebarCollapsed ? (
           <div className="flex flex-col items-center gap-3">
             {/* Wallet / Telephony Icon in Squircle */}
@@ -260,10 +226,10 @@ export function Sidebar() {
             <div className="relative">
               <button
                 onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
-                className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold text-xs hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
+                className="rounded-full border-2 border-white shadow-sm hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
                 aria-label="User profile and logout"
               >
-                PM
+                <AdminAvatar size={40} />
               </button>
 
               {/* Collapsed Avatar Dropdown */}
@@ -291,9 +257,7 @@ export function Sidebar() {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-xs">
-                  PM
-                </div>
+                <AdminAvatar size={36} />
                 <div className="truncate">
                   <span className="font-bold text-slate-900 text-xs block truncate">
                     Praveen Manne
@@ -314,7 +278,7 @@ export function Sidebar() {
             </div>
 
             <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 font-mono">
-              <span>Sarvam Engine:</span>
+              <span>Voice Core:</span>
               <span className="text-emerald-600 font-semibold flex items-center gap-1">
                 ● Ready
               </span>

@@ -53,7 +53,7 @@ export default function KnowledgeBasePage() {
   const [editingDoc, setEditingDoc] = useState<KnowledgeDoc | null>(null);
   const [modalTitle, setModalTitle] = useState('');
   const [modalCategory, setModalCategory] = useState<KnowledgeDoc['category']>('policy');
-  const [modalProjectId, setModalProjectId] = useState<ProjectId>('HRMS');
+  const [modalProjectId, setModalProjectId] = useState<ProjectId>('GENERAL');
   const [modalContent, setModalContent] = useState('');
   const [previewMode, setPreviewMode] = useState(false);
   const [hasModalUnsaved, setHasModalUnsaved] = useState(false);
@@ -117,7 +117,7 @@ export default function KnowledgeBasePage() {
           return next;
         });
 
-        const targetProj = selectedProject === 'ALL' ? 'HRMS' : selectedProject;
+        const targetProj = selectedProject === 'ALL' ? (projects[0]?.id || 'GENERAL') : selectedProject;
         addDocument({
           title: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
           fileName: file.name,
@@ -127,7 +127,7 @@ export default function KnowledgeBasePage() {
           format: (ext === 'md' || ext === 'markdown' ? 'markdown' : ext === 'pdf' ? 'pdf' : 'txt') as DocumentFormat,
           sizeBytes: file.size,
           uploader: 'sandeepnaikb0@gmail.com',
-          contentSnippet: `Ingested from ${file.name}. Validated against RainerTek document compliance rules.`,
+          contentSnippet: `Saved from ${file.name}.`,
           rawText: `Sample parsed content from ${file.name}. Indexed for AI assistant retrieval.`,
         });
       }, 900);

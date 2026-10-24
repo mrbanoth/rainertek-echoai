@@ -1,0 +1,15 @@
+services:
+  echo-ai:
+    build: .
+    ports:
+      - "1111:1111"
+    volumes:
+      - .:/app
+      - echo_ai_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env
+
+volumes:
+  echo_ai_modules:

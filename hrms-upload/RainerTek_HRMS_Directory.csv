@@ -1,0 +1,4 @@
+company,full_name,mobile,account_type,what_they_are,employee_code,join_date,annual_balance_days,sick_balance_days,casual_balance_days,emergency_balance_days,salary_inr,notes
+RainerTek,Sandeep Naik,9390730129,Employee,Employee at RainerTek,,,,,,,,"Not on file. Do not invent a balance, salary, employee code, or join date."
+RainerTek,Tagore,7207210111,Employee,Employee at RainerTek,,,,,,,,"Not on file. Do not invent a balance, salary, employee code, or join date."
+RainerTek,Akash,9392576527,Administrator,Company administrator for RainerTek only. Not a member of the HRMS platform team.,,,,,,,"Not on file. An administrator can see their own company only after identity is confirmed and a live HRMS connection returns the record. Do not invent a salary or balance."

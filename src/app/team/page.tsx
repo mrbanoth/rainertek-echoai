@@ -95,7 +95,7 @@ export default function TeamAndPermissionsPage() {
       {/* Team Members Table */}
       <div className="rounded-xl bg-[#111A2E] border border-slate-800 overflow-hidden shadow-xs">
         <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Authorized RainerTek Personnel ({team.length})</h3>
+          <h3 className="text-sm font-semibold text-white">Echo AI team ({team.length})</h3>
           <span className="text-[11px] font-mono text-slate-400">SAML SSO / Okta Synced</span>
         </div>
 

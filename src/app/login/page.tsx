@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { EchoLogo } from '@/components/layout/EchoLogo';
 import {
   Eye,
   EyeOff,
@@ -81,62 +81,52 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* Left Hero Column with Official Logo & Department Badges */}
         <div className="lg:col-span-6 flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 px-4">
-          {/* Official RainerTek EchoAI Logo Asset */}
-          <div className="relative w-72 sm:w-84 h-24 sm:h-28 flex items-center justify-center lg:justify-start">
-            <Image
-              src="/assets/logo.png"
-              alt="RainerTek EchoAI - One Voice. Every Possibility."
-              width={360}
-              height={120}
-              className="w-full h-full object-contain filter drop-shadow-sm"
-              priority
-            />
-          </div>
+          <EchoLogo size={56} showText showSubtitle />
 
           <div className="space-y-1.5 max-w-md">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               AI Voice Assistant for a Smarter Workplace
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Enterprise AI voice-calling platform for RainerTek internal operations — handling automated outbound calls, inbound routing, and verified knowledge grounding.
+              A low-cost Echo AI proof of concept for inbound and outbound voice agents. Scripts and context stay on this laptop.
             </p>
           </div>
 
-          {/* Department Circles Matching Design */}
+          {/* Capability Badges Matching Design */}
           <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
             <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="w-11 h-11 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/90 shadow-sm flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
                 <Users size={18} />
               </div>
-              <span className="text-[11px] font-bold text-slate-700">HR</span>
+              <span className="text-[11px] font-bold text-slate-700">Voice AI</span>
             </div>
 
             <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="w-11 h-11 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/90 shadow-sm flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
                 <Shield size={18} />
               </div>
-              <span className="text-[11px] font-bold text-slate-700">QMS</span>
+              <span className="text-[11px] font-bold text-slate-700">Inbound</span>
             </div>
 
             <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="w-11 h-11 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/90 shadow-sm flex items-center justify-center text-cyan-600 group-hover:scale-105 transition-transform">
                 <FlaskConical size={18} />
               </div>
-              <span className="text-[11px] font-bold text-slate-700">LIMS</span>
+              <span className="text-[11px] font-bold text-slate-700">Outbound</span>
             </div>
 
             <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="w-11 h-11 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/90 shadow-sm flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
                 <Terminal size={18} />
               </div>
-              <span className="text-[11px] font-bold text-slate-700">IT</span>
+              <span className="text-[11px] font-bold text-slate-700">Knowledge</span>
             </div>
 
             <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="w-11 h-11 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/90 shadow-sm flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
                 <Layers size={18} />
               </div>
-              <span className="text-[11px] font-bold text-slate-700">All Teams</span>
+              <span className="text-[11px] font-bold text-slate-700">All Ops</span>
             </div>
           </div>
         </div>
@@ -149,7 +139,7 @@ export default function LoginPage() {
                 Welcome Back
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Sign in to your RainerTek EchoAI account
+                Sign in to Echo AI
               </p>
             </div>
 
@@ -217,7 +207,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert('Please contact RainerTek IT Administrator for password assistance.')}
+                  onClick={() => alert('Password help is not set up on this proof of concept.')}
                   className="text-blue-600 hover:text-blue-700 font-semibold"
                 >
                   Forgot password?
@@ -242,7 +232,7 @@ export default function LoginPage() {
             </form>
 
             <div className="pt-2 text-center text-[11px] text-slate-400 font-mono">
-              Demo Credentials Pre-filled • RainerTek Confidential
+              Demo sign-in is filled in. Echo AI proof of concept.
             </div>
           </div>
         </div>

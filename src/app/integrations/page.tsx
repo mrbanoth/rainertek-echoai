@@ -35,7 +35,7 @@ export default function IntegrationsCataloguePage() {
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Verified system connectors for voice synthesis, internal HRMS records, cleanroom QMS deviations, and LIMS tracking.
+            Verified system connectors for voice synthesis, telephony carrier gateways, and real-time enterprise webhook streaming.
           </p>
         </div>
 

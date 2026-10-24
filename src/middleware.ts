@@ -26,9 +26,8 @@ export function middleware(request: NextRequest) {
   // Protected paths
   const protectedPaths = [
     '/dashboard',
-    '/voice',
-    '/live',
     '/agents',
+    '/live',
     '/calls',
     '/settings',
     '/inbound',

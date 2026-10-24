@@ -11,11 +11,11 @@ import {
   AlertTriangle,
   ChevronDown,
   X,
-  Radio,
   LogOut,
   Building2,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { AdminAvatar } from './AdminAvatar';
 import { UserRole } from '@/types';
 
 export function Header() {
@@ -28,7 +28,6 @@ export function Header() {
     selectedProject,
     notificationsOpen,
     setNotificationsOpen,
-    liveCallState,
     auditLogs,
   } = useApp();
 
@@ -44,17 +43,16 @@ export function Header() {
       case '/':
       case '/dashboard':
         return { title: 'Dashboard', section: 'Overview & Telemetry' };
-      case '/voice':
-      case '/live':
-        return { title: 'Voice Workspace', section: 'Interactive AI Telephony' };
       case '/agents':
         return { title: 'Agents & Knowledge', section: 'Prompt & Document Grounding' };
+      case '/live':
+        return { title: 'Live Call', section: 'Browser voice' };
       case '/calls':
         return { title: 'Call History', section: 'Telephony Session Logs' };
       case '/settings':
         return { title: 'Team & Settings', section: 'Governance, Roles & System' };
       default:
-        return { title: 'RainerTek EchoAI', section: 'Voice Platform' };
+        return { title: 'Echo AI', section: 'Voice POC' };
     }
   };
 
@@ -77,14 +75,13 @@ export function Header() {
     setSearchOpen(false);
     if (q.includes('call') || q.includes('transcript')) router.push('/calls');
     else if (q.includes('agent') || q.includes('doc') || q.includes('prompt')) router.push('/agents');
-    else if (q.includes('voice') || q.includes('live')) router.push('/voice');
     else if (q.includes('team') || q.includes('setting') || q.includes('role')) router.push('/settings');
     else router.push('/dashboard');
   };
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 backdrop-blur px-4 md:px-6">
+      <header className="z-20 flex h-16 w-full shrink-0 items-center justify-between border-b border-slate-200/90 bg-white/95 backdrop-blur px-4 md:px-6">
         {/* Left: Mobile Toggle & Page Title */}
         <div className="flex items-center gap-3">
           <button
@@ -97,7 +94,7 @@ export function Header() {
 
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-              <span>EchoAI</span>
+              <span>Echo AI</span>
               <span>/</span>
               <span className="text-slate-600">{meta.section}</span>
               {selectedProject !== 'ALL' && (
@@ -111,12 +108,6 @@ export function Header() {
             </div>
             <h1 className="text-sm md:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
               {meta.title}
-              {pathname === '/voice' && liveCallState.status === 'connected' && (
-                <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                  <Radio size={12} />
-                  LIVE CALL ACTIVE
-                </span>
-              )}
             </h1>
           </div>
         </div>
@@ -202,9 +193,7 @@ export function Header() {
               onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
               className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors text-left"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
-                PM
-              </div>
+              <AdminAvatar size={28} />
               <div className="hidden sm:flex flex-col">
                 <span className="text-xs font-semibold text-slate-900 leading-none">Praveen Manne</span>
                 <span className="text-[10px] text-blue-600 font-mono font-semibold mt-0.5">
@@ -284,12 +273,6 @@ export function Header() {
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 text-left font-medium"
               >
                 📊 <strong>Dashboard</strong> — Metrics & activity
-              </button>
-              <button
-                onClick={() => { setSearchOpen(false); router.push('/voice'); }}
-                className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 text-left font-medium"
-              >
-                🎙️ <strong>Voice Workspace</strong> — 3D AI assistant
               </button>
               <button
                 onClick={() => { setSearchOpen(false); router.push('/agents'); }}

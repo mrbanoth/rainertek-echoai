@@ -75,7 +75,7 @@ SARVAM_API_KEY=your_sarvam_api_key_here
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:1111](http://localhost:1111) in your browser.
 
 ### 4. Build for Production
 ```bash

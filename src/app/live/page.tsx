@@ -1,412 +1,423 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  PhoneCall,
-  PhoneOff,
-  Mic,
-  MicOff,
-  Radio,
-  UserCheck,
-  Clock,
-  Sparkles,
-  BookOpen,
-  Send,
-  AlertTriangle,
-  Info,
-  CheckCircle2,
-  Shield,
-  Layers,
-  ChevronRight,
-  ExternalLink,
-  Bot,
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Mic, PhoneOff, Square } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { ThreeAssistant, AssistantVisualState } from '@/components/live/ThreeAssistant';
+import { CallSessionRecord, CallTurn } from '@/types';
 
-export default function LiveVoiceWorkspacePage() {
-  const {
-    agents,
-    projects,
-    selectedProject,
-    selectedAgentId,
-    setSelectedAgentId,
-    liveCallState,
-    startLiveCall,
-    endLiveCall,
-    toggleLiveMute,
-    escalateToHuman,
-    sendLiveUserMessage,
-    documents,
-  } = useApp();
+type Phase = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-  const [inputMessage, setInputMessage] = useState('');
-  const [audioLevelSim, setAudioLevelSim] = useState(0.2);
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
-  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+function nowLabel() {
+  return new Date().toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
-  const activeAgent = agents.find((a) => a.id === liveCallState.agentId) || agents[0];
+function clock() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
 
-  // Auto scroll transcript
+export default function LiveCallPage() {
+  const { agents, documents, selectedAgentId, upsertCall } = useApp();
+  const agent = agents.find((item) => item.id === selectedAgentId) || agents[0];
+  const docs = documents.filter((doc) => agent?.approvedKnowledgeSources?.includes(doc.title));
+  const context = docs.map((doc) => `${doc.title}\n${doc.rawText || doc.contentSnippet || ''}`).join('\n\n');
+
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [recording, setRecording] = useState(false);
+  const [transcript, setTranscript] = useState<CallTurn[]>([]);
+  const [error, setError] = useState('');
+  const [typed, setTyped] = useState('');
+
+  const phaseRef = useRef<Phase>('idle');
+  const callIdRef = useRef<string | null>(null);
+  const startedAtRef = useRef('');
+  const startedMs = useRef(0);
+  const historyRef = useRef<Array<{ speaker: 'agent' | 'caller'; text: string }>>([]);
+  const transcriptRef = useRef<CallTurn[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const sendingRef = useRef(false);
+  const skipAudioRef = useRef(false);
+
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [liveCallState.transcript]);
+    setMounted(true);
+  }, []);
 
-  // Audio level simulation when speaking/listening
   useEffect(() => {
-    if (liveCallState.visual3DState === 'speaking' || liveCallState.visual3DState === 'listening') {
-      const interval = setInterval(() => {
-        setAudioLevelSim(0.2 + Math.random() * 0.7);
-      }, 150);
-      return () => clearInterval(interval);
-    } else {
-      setAudioLevelSim(0.05);
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      audioRef.current?.pause();
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  const setPhaseBoth = (next: Phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  };
+
+  const remember = (next: CallTurn[]) => {
+    transcriptRef.current = next;
+    setTranscript(next);
+  };
+
+  const persist = async (next: CallTurn[], status: CallSessionRecord['status']) => {
+    if (!agent || !callIdRef.current) return;
+    const callerLine = [...next].reverse().find((turn) => turn.speaker === 'caller');
+    const record: CallSessionRecord = {
+      id: callIdRef.current,
+      startTime: startedAtRef.current,
+      direction: agent.channel === 'outbound' ? 'outbound' : 'inbound',
+      projectId: agent.projectId || 'GENERAL',
+      agentId: agent.id,
+      agentName: agent.name,
+      callerNumber: 'Browser mic',
+      durationSeconds: Math.max(1, Math.round((Date.now() - startedMs.current) / 1000)),
+      status,
+      outcome: status === 'failed' ? 'failed' : 'completed',
+      escalationStatus: 'none',
+      estimatedCost: 0,
+      intent: callerLine?.text.slice(0, 140) || 'Live browser session',
+      transcript: next,
+      citedKnowledgeSources: docs.map((doc) => doc.title),
+      lifecycleEvents: [{ time: clock(), type: 'success', label: 'Caller speech saved', detail: callerLine?.text }],
+      costBreakdown: { stt: 0, llm: 0, tts: 0, telephony: 0 },
+    };
+    upsertCall(record);
+    await fetch('/api/calls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    }).catch(() => undefined);
+  };
+
+  const playReply = async (text: string, audioBase64: string | null) => {
+    setPhaseBoth('speaking');
+    if (audioBase64) {
+      await new Promise<void>((resolve) => {
+        const audio = new Audio(audioBase64);
+        audioRef.current = audio;
+        audio.onended = () => resolve();
+        audio.onerror = () => resolve();
+        audio.play().catch(() => resolve());
+      });
+      return;
     }
-  }, [liveCallState.visual3DState]);
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
-    sendLiveUserMessage(inputMessage);
-    setInputMessage('');
+    await new Promise<void>((resolve) => {
+      if (!window.speechSynthesis) {
+        resolve();
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    });
   };
 
-  const formatDuration = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const sendTurn = async (audio: Blob | null, text: string) => {
+    if (!agent || !callIdRef.current || sendingRef.current) return;
+    if (!audio && !text.trim()) return;
+    sendingRef.current = true;
+    setPhaseBoth('thinking');
+    setError('');
+
+    const form = new FormData();
+    if (audio && audio.size > 0) form.set('audio', audio, 'speech.webm');
+    if (text.trim()) form.set('text', text.trim());
+    form.set(
+      'meta',
+      JSON.stringify({
+        callId: callIdRef.current,
+        agentId: agent.id,
+        agentName: agent.name,
+        direction: agent.channel === 'outbound' ? 'outbound' : 'inbound',
+        projectId: agent.projectId || 'GENERAL',
+        task: agent.systemPrompt.instructions || agent.description,
+        context,
+        startedAt: startedAtRef.current,
+        durationSeconds: Math.round((Date.now() - startedMs.current) / 1000),
+        history: historyRef.current,
+        sources: docs.map((doc) => doc.title),
+      })
+    );
+
+    try {
+      const response = await fetch('/api/voice/turn', { method: 'POST', body: form });
+      const data = (await response.json()) as {
+        heard?: boolean;
+        userText?: string;
+        agentText?: string;
+        audioBase64?: string | null;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || 'The voice turn failed.');
+      if (!data.heard || !data.userText || !data.agentText) {
+        if (phaseRef.current !== 'idle') setPhaseBoth('listening');
+        setError('No speech was heard. Speak again, or type the line.');
+        return;
+      }
+
+      const userTurn: CallTurn = {
+        id: `turn-${historyRef.current.length}`,
+        speaker: 'caller',
+        text: data.userText,
+        timestamp: clock(),
+      };
+      const agentTurn: CallTurn = {
+        id: `turn-${historyRef.current.length + 1}`,
+        speaker: 'agent',
+        text: data.agentText,
+        timestamp: clock(),
+      };
+      historyRef.current = [
+        ...historyRef.current,
+        { speaker: 'caller', text: data.userText },
+        { speaker: 'agent', text: data.agentText },
+      ];
+      const next = [...transcriptRef.current, userTurn, agentTurn];
+      remember(next);
+      await persist(next, 'connected');
+      await playReply(data.agentText, data.audioBase64 || null);
+      if (phaseRef.current !== 'idle') setPhaseBoth('listening');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The voice turn failed.');
+      if (phaseRef.current !== 'idle') setPhaseBoth('listening');
+    } finally {
+      sendingRef.current = false;
+    }
   };
+
+  const stopRecorder = () => {
+    const recorder = recorderRef.current;
+    setRecording(false);
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    else recorderRef.current = null;
+  };
+
+  const startRecorder = () => {
+    const stream = streamRef.current;
+    if (!stream || recorderRef.current || phaseRef.current === 'idle') return;
+    chunksRef.current = [];
+    const recorder = new MediaRecorder(stream);
+    recorderRef.current = recorder;
+    setRecording(true);
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunksRef.current.push(event.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+      recorderRef.current = null;
+      chunksRef.current = [];
+      setRecording(false);
+      if (skipAudioRef.current || phaseRef.current === 'idle') {
+        skipAudioRef.current = false;
+        return;
+      }
+      void sendTurn(blob, '');
+    };
+    recorder.start();
+    setPhaseBoth('listening');
+  };
+
+  const openMic = async () => {
+    if (streamRef.current) return;
+    try {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setError('Microphone permission was blocked. You can still type a line and send it.');
+    }
+  };
+
+  const startCall = async () => {
+    if (!agent || callIdRef.current) return;
+    setError('');
+    callIdRef.current = `call-${crypto.randomUUID()}`;
+    startedAtRef.current = nowLabel();
+    startedMs.current = Date.now();
+    const greeting =
+      agent.greeting ||
+      (agent.channel === 'outbound'
+        ? `Hello, this is ${agent.name}. Am I speaking with the right person?`
+        : `Hello, this is ${agent.name}. How can I help you today?`);
+    const opening: CallTurn = { id: 'turn-0', speaker: 'agent', text: greeting, timestamp: clock() };
+    historyRef.current = [{ speaker: 'agent', text: greeting }];
+    remember([opening]);
+    await openMic();
+    const spoken = await fetch('/api/voice/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: greeting }),
+    })
+      .then((response) => response.json())
+      .catch(() => ({ audioBase64: null as string | null }));
+    await playReply(greeting, spoken.audioBase64 || null);
+    if (phaseRef.current === 'idle') return;
+    setPhaseBoth('listening');
+    startRecorder();
+  };
+
+  const endCall = async () => {
+    const snapshot = transcriptRef.current;
+    phaseRef.current = 'idle';
+    setPhase('idle');
+    skipAudioRef.current = true;
+    stopRecorder();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    audioRef.current?.pause();
+    window.speechSynthesis?.cancel();
+    if (snapshot.length > 0) await persist(snapshot, 'completed');
+    callIdRef.current = null;
+    setRecording(false);
+  };
+
+  const sendTyped = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const line = typed.trim();
+    if (!line || !agent) return;
+    setTyped('');
+    if (!callIdRef.current) {
+      callIdRef.current = `call-${crypto.randomUUID()}`;
+      startedAtRef.current = nowLabel();
+      startedMs.current = Date.now();
+      const greeting = agent.greeting || `Hello, this is ${agent.name}. How can I help you today?`;
+      historyRef.current = [{ speaker: 'agent', text: greeting }];
+      remember([{ id: 'turn-0', speaker: 'agent', text: greeting, timestamp: clock() }]);
+    }
+    skipAudioRef.current = true;
+    stopRecorder();
+    await sendTurn(null, line);
+  };
+
+  if (!mounted) {
+    return (
+      <section className="rounded-2xl bg-white border border-slate-200 p-5 min-h-[520px]">
+        <h1 className="text-lg font-bold text-slate-900">Live Call</h1>
+        <p className="text-xs text-slate-500 mt-1">Loading the selected agent.</p>
+      </section>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner: Verification and Environment Notice */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-[#111A2E] border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-              <Radio size={18} className="text-indigo-400" />
-              Live Voice Workspace
-            </h2>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 font-bold">
-              SIMULATED TELEPHONY ENVIRONMENT
-            </span>
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+      <section className="rounded-2xl bg-white border border-slate-200 p-5 space-y-4 min-h-[520px]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-blue-600">
+              {agent?.channel === 'outbound' ? 'Outbound' : 'Inbound'} · browser voice
+            </p>
+            <h1 className="text-lg font-bold text-slate-900">{agent?.name || 'Echo AI'}</h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Speak, then send. The words you say are saved in Call History. This session stays in the browser and does not dial a phone.
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Real-time interactive session visualizer, audio stream synthesis, and knowledge-grounded context engine.
-          </p>
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+            {phase === 'idle' ? 'Ready' : phase === 'listening' ? 'Listening' : phase === 'thinking' ? 'Thinking' : 'Speaking'}
+          </span>
         </div>
 
-        {/* Call Status Badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-xs">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                liveCallState.status === 'connected'
-                  ? 'bg-emerald-400 animate-pulse'
-                  : liveCallState.status === 'connecting'
-                  ? 'bg-amber-400 animate-ping'
-                  : 'bg-slate-500'
-              }`}
-            />
-            <span className="font-semibold text-slate-200 uppercase font-mono text-[11px]">
-              {liveCallState.status}
-            </span>
-            {liveCallState.status === 'connected' && (
-              <span className="text-emerald-400 font-mono font-bold ml-1">
-                {formatDuration(liveCallState.durationSeconds)}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid: 3D Assistant Orb (Left) & Live Context/Transcript (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (7 cols): Procedural 3D Assistant Visualizer & Controls */}
-        <div className="lg:col-span-7 flex flex-col space-y-4">
-          <div className="p-6 rounded-xl bg-[#111A2E] border border-slate-800 flex flex-col items-center justify-between relative overflow-hidden min-h-[440px]">
-            {/* Top Info Header inside 3D Canvas */}
-            <div className="w-full flex items-center justify-between text-xs z-10">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-[11px] font-mono text-indigo-300">
-                  {liveCallState.projectId}
-                </span>
-                <span className="text-slate-300 font-semibold">{activeAgent.name}</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
-                <span>Caller: {liveCallState.callerNumber}</span>
-                <span>•</span>
-                <span className="text-cyan-400">Inbound SIP</span>
-              </div>
-            </div>
-
-            {/* Central 3D Procedural Visualizer */}
-            <div className="relative w-full flex-1 flex items-center justify-center my-2">
-              <ThreeAssistant
-                state={liveCallState.visual3DState}
-                audioLevel={audioLevelSim}
-                className="w-full h-80 max-w-sm"
-              />
-
-              {/* Audio Reactive Equalizer Bars */}
-              {liveCallState.status === 'connected' && (
-                <div className="absolute bottom-2 flex items-center gap-1">
-                  {[40, 70, 90, 60, 100, 50, 80, 45, 65, 30].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-indigo-500/80 rounded-full transition-all duration-150"
-                      style={{
-                        height: `${Math.max(4, h * audioLevelSim)}px`,
-                        backgroundColor: liveCallState.isMuted
-                          ? '#ef4444'
-                          : liveCallState.visual3DState === 'speaking'
-                          ? '#06b6d4'
-                          : '#6366f1',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Visual State Indicator Pill */}
-            <div className="z-10 flex items-center gap-2 text-xs font-mono">
-              <span className="text-slate-400">Assistant State:</span>
-              <span className="font-bold text-white uppercase px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700">
-                {liveCallState.visual3DState}
-              </span>
-              {liveCallState.isMuted && (
-                <span className="text-rose-400 font-semibold flex items-center gap-1 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-500/40">
-                  <MicOff size={12} /> MUTED
-                </span>
-              )}
-              {liveCallState.isEscalated && (
-                <span className="text-amber-400 font-semibold flex items-center gap-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/40">
-                  <UserCheck size={12} /> SUPERVISOR TAKEOVER
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Call Controls Area (Section 7 Requirements) */}
-          <div className="p-4 rounded-xl bg-[#111A2E] border border-slate-800">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {/* Agent Selector (when idle) */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">Target Agent:</span>
-                <select
-                  disabled={liveCallState.status === 'connected'}
-                  value={liveCallState.agentId}
-                  aria-label="Select target agent for call"
-                  onChange={(e) => setSelectedAgentId(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-md px-2.5 py-1.5 text-slate-200 font-semibold text-xs focus:outline-none disabled:opacity-50"
-                >
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.projectId})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {liveCallState.status !== 'connected' ? (
-                  <button
-                    onClick={() => startLiveCall(liveCallState.agentId)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md transition-colors"
-                  >
-                    <PhoneCall size={14} />
-                    Start Test Call
-                  </button>
-                ) : (
-                  <>
-                    {/* Mute Button */}
-                    <button
-                      onClick={toggleLiveMute}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
-                        liveCallState.isMuted
-                          ? 'bg-rose-900/60 border-rose-500/40 text-rose-300'
-                          : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800'
-                      }`}
-                    >
-                      {liveCallState.isMuted ? <MicOff size={14} /> : <Mic size={14} />}
-                      {liveCallState.isMuted ? 'Unmute' : 'Mute'}
-                    </button>
-
-                    {/* Escalate to Human */}
-                    <button
-                      onClick={escalateToHuman}
-                      disabled={liveCallState.isEscalated}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-300 hover:bg-amber-900/60 text-xs font-semibold disabled:opacity-50 transition-colors"
-                      title="Initiate warm transfer to human supervisor"
-                    >
-                      <UserCheck size={14} />
-                      Escalate to Human
-                    </button>
-
-                    {/* End Call Button */}
-                    <button
-                      onClick={() => setShowEndConfirm(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-md transition-colors"
-                    >
-                      <PhoneOff size={14} />
-                      End Call
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* End Call Confirmation Modal */}
-            {showEndConfirm && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-                <div className="w-full max-w-sm rounded-xl bg-[#0F172A] border border-slate-700 p-5 space-y-4">
-                  <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
-                    <AlertTriangle size={18} />
-                    End Active Voice Session?
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    This will disconnect the caller, commit the conversation transcript, and save usage metrics to Call History.
-                  </p>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      onClick={() => setShowEndConfirm(false)}
-                      className="px-3 py-1.5 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowEndConfirm(false);
-                        endLiveCall();
-                      }}
-                      className="px-3 py-1.5 rounded bg-rose-600 text-white text-xs font-semibold hover:bg-rose-500"
-                    >
-                      Confirm Disconnect
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column (5 cols): Live Transcript & Event Timeline */}
-        <div className="lg:col-span-5 flex flex-col space-y-4">
-          {/* Transcript Panel */}
-          <div className="p-4 rounded-xl bg-[#111A2E] border border-slate-800 flex-1 flex flex-col min-h-[380px] max-h-[460px]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                <Sparkles size={14} className="text-indigo-400" />
-                Live Conversation Stream
-              </span>
-              <span className="text-[10px] font-mono text-slate-500">
-                {liveCallState.transcript.length} turns recorded
-              </span>
-            </div>
-
-            {/* Transcript Messages Scroll */}
-            <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1 text-xs">
-              {liveCallState.transcript.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 p-6">
-                  <Bot size={28} className="mb-2 text-slate-600" />
-                  <p className="font-semibold text-slate-400">Ready for Live Voice</p>
-                  <p className="text-[11px] mt-1">Start a call or type below to test speech turns.</p>
-                </div>
-              ) : (
-                liveCallState.transcript.map((t, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-lg text-xs leading-relaxed ${
-                      t.speaker === 'agent'
-                        ? 'bg-slate-900 border border-slate-800 text-slate-200 ml-4'
-                        : t.speaker === 'human_supervisor'
-                        ? 'bg-amber-950/40 border border-amber-500/40 text-amber-200'
-                        : 'bg-indigo-950/40 border border-indigo-500/30 text-indigo-100 mr-4'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] font-mono mb-1 text-slate-400">
-                      <span className="font-bold uppercase">
-                        {t.speaker === 'agent'
-                          ? `Agent (${activeAgent.name})`
-                          : t.speaker === 'human_supervisor'
-                          ? 'Supervisor Hand-off'
-                          : 'Caller (Simulated)'}
-                      </span>
-                      <span>{t.timestamp}</span>
-                    </div>
-                    <p>{t.text}</p>
-                  </div>
-                ))
-              )}
-              <div ref={transcriptEndRef} />
-            </div>
-
-            {/* Manual Message Input for Voice Session Testing */}
-            <form onSubmit={handleSendMessage} className="pt-3 border-t border-slate-800 flex gap-2">
-              <input
-                type="text"
-                disabled={liveCallState.status !== 'connected'}
-                placeholder={
-                  liveCallState.status === 'connected'
-                    ? 'Speak or type caller message...'
-                    : 'Start call above to send messages'
-                }
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
-              />
+        <div className="flex flex-wrap items-center gap-2">
+          {phase === 'idle' ? (
+            <button
+              type="button"
+              onClick={() => void startCall()}
+              disabled={!agent}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold"
+            >
+              <Mic size={14} />
+              Start call
+            </button>
+          ) : (
+            <>
               <button
-                type="submit"
-                disabled={liveCallState.status !== 'connected' || !inputMessage.trim()}
-                className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
-                aria-label="Send test caller turn"
+                type="button"
+                onClick={() => {
+                  if (recording) stopRecorder();
+                  else startRecorder();
+                }}
+                disabled={phase === 'thinking' || phase === 'speaking'}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold disabled:opacity-50"
               >
-                <Send size={14} />
+                {recording ? <Square size={14} /> : <Mic size={14} />}
+                {recording ? 'Send speech' : 'Speak'}
               </button>
-            </form>
-          </div>
-
-          {/* Active Knowledge Sources & Event Timeline */}
-          <div className="p-4 rounded-xl bg-[#111A2E] border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                <BookOpen size={14} className="text-cyan-400" />
-                Active Knowledge Grounding
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">Zero Hallucination Guard</span>
-            </div>
-            <div className="space-y-1.5 text-[11px]">
-              {documents
-                .filter((d) => d.projectId === liveCallState.projectId)
-                .slice(0, 2)
-                .map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800 text-slate-300"
-                  >
-                    <span className="truncate">{doc.title}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{doc.category}</span>
-                  </div>
-                ))}
-            </div>
-
-            {/* Event Timeline */}
-            <div className="pt-2 border-t border-slate-800">
-              <span className="text-[10px] font-mono text-slate-400 uppercase">Call Lifecycle Events</span>
-              <div className="mt-1 space-y-1 max-h-24 overflow-y-auto pr-1">
-                {liveCallState.events.slice(-3).map((ev, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="truncate">↳ {ev.label}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{ev.time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+              <button
+                type="button"
+                onClick={() => void endCall()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold"
+              >
+                <PhoneOff size={14} />
+                End and save
+              </button>
+            </>
+          )}
+          <Link href="/calls" className="text-xs font-bold text-blue-700">
+            Open call history
+          </Link>
         </div>
-      </div>
+
+        {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
+
+        <div className="space-y-2">
+          {transcript.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              Start the call, speak, then press Send speech. Call History keeps the exact line you said.
+            </p>
+          ) : (
+            transcript.map((turn) => (
+              <div
+                key={turn.id}
+                className={`rounded-xl p-3 text-sm ${
+                  turn.speaker === 'caller' ? 'bg-slate-100 text-slate-900 mr-8' : 'bg-blue-50 text-slate-800 ml-8'
+                }`}
+              >
+                <p className="text-[10px] font-bold uppercase text-slate-500 mb-1">
+                  {turn.speaker === 'caller' ? 'You said' : agent?.name || 'Echo AI'}
+                </p>
+                <p>{turn.text}</p>
+              </div>
+            ))
+          )}
+        </div>
+
+        <form onSubmit={(event) => void sendTyped(event)} className="flex gap-2">
+          <input
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            placeholder="Or type what the caller said"
+            className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          />
+          <button type="submit" className="px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">
+            Send
+          </button>
+        </form>
+      </section>
+
+      <aside className="rounded-2xl bg-white border border-slate-200 p-4 space-y-3">
+        <h2 className="text-sm font-bold text-slate-900">This call uses</h2>
+        <p className="text-xs text-slate-600 whitespace-pre-wrap">{agent?.systemPrompt.instructions || 'No prompt yet.'}</p>
+        <p className="text-xs font-bold text-slate-900">Context</p>
+        {docs.length === 0 ? (
+          <p className="text-xs text-slate-500">No notes on this agent. Add them under Agents & Knowledge.</p>
+        ) : (
+          docs.map((doc) => (
+            <p key={doc.id} className="text-[11px] text-slate-600 line-clamp-4">
+              {doc.title}: {doc.contentSnippet}
+            </p>
+          ))
+        )}
+      </aside>
     </div>
   );
 }

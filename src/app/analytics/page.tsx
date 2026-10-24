@@ -38,7 +38,7 @@ export default function AnalyticsAndUsagePage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `RainerTek_EchoAI_Usage_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `EchoAI_Usage_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -59,7 +59,7 @@ export default function AnalyticsAndUsagePage() {
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Internal usage intelligence for RainerTek infrastructure. Not an external billing system.
+            Usage notes for this Echo AI proof of concept. Not a billing system.
           </p>
         </div>
 
@@ -97,10 +97,10 @@ export default function AnalyticsAndUsagePage() {
             <span className="text-2xl font-bold text-white font-mono">
               ₹{metrics.estimatedAiCost.toFixed(2)}
             </span>
-            <span className="text-[10px] text-indigo-400 font-mono">Sarvam AI</span>
+            <span className="text-[10px] text-indigo-400 font-mono">Neural Voice</span>
           </div>
           <span className="text-[10px] text-slate-500 font-mono block mt-1">
-            STT Whisper + LLM Bulbul
+            STT + Voice Synthesis Engine
           </span>
         </div>
 
@@ -126,7 +126,7 @@ export default function AnalyticsAndUsagePage() {
             <span className="text-[10px] text-emerald-400 font-mono">CONFIRMED</span>
           </div>
           <span className="text-[10px] text-slate-500 font-mono block mt-1">
-            Reconciled via Sarvam API
+            Counted inside Echo AI
           </span>
         </div>
 
@@ -166,9 +166,7 @@ export default function AnalyticsAndUsagePage() {
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${
-                        proj.id === 'HRMS' ? 'bg-cyan-500' : proj.id === 'QMS' ? 'bg-indigo-500' : 'bg-purple-500'
-                      }`}
+                      className="h-full rounded-full bg-blue-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
